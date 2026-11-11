@@ -1,9 +1,12 @@
+import { sql } from 'drizzle-orm';
 import {
   pgTable,
   text,
   timestamp,
   boolean,
   index,
+  numeric,
+  check,
 } from 'drizzle-orm/pg-core';
 
 // better-auth tables (https://www.better-auth.com/docs/concepts/database)
@@ -73,9 +76,30 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Project tables. The wallet read model: list-only columns, every field but
+// the address nullable until scoring and labelling exist (ADR: read model only).
+export const wallets = pgTable(
+  'wallets',
+  {
+    address: text('address').primaryKey(),
+    score: numeric('score', { precision: 6, scale: 4 }),
+    band: text('band'),
+    confidence: text('confidence'),
+    labelTier: text('label_tier'),
+    decisionStatus: text('decision_status'),
+    lastAnalysed: timestamp('last_analysed'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('wallets_score_idx').on(t.score),
+    check('wallets_address_hex', sql`${t.address} ~ '^[0-9a-f]{40}$'`),
+  ],
+);
+
 export const schema = {
   user,
   session,
   account,
   verification,
+  wallets,
 };

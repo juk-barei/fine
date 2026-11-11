@@ -60,8 +60,8 @@ describe('permissionsForRoles', () => {
     expect(permissions).toEqual([...permissions].sort());
   });
 
-  it('grants the user role read access to the example resource', () => {
-    expect(permissionsForRoles('user')).toEqual(['pokemon:read']);
+  it('grants the user role its investigative permissions', () => {
+    expect(permissionsForRoles('user')).toEqual(['pokemon:read', 'wallet:list']);
   });
 
   it('unions multiple roles', () => {

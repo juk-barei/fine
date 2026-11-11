@@ -1,0 +1,18 @@
+type WalletListItem {
+  address: String!
+  score: Float
+  band: String
+  confidence: String
+  labelTier: String
+  decisionStatus: String
+  lastAnalysed: String
+}
+
+type WalletPage {
+  nodes: [WalletListItem!]!
+  total: Int!
+}
+
+extend type Query {
+  wallets(limit: Int, offset: Int, status: String): WalletPage!
+}

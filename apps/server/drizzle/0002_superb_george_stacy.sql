@@ -1,0 +1,1 @@
+ALTER TABLE "wallets" ADD CONSTRAINT "wallets_address_hex" CHECK ("wallets"."address" ~ '^[0-9a-f]{40}$');

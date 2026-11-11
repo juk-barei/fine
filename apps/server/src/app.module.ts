@@ -19,6 +19,7 @@ import { PingModule } from './modules/ping/ping.module.ts';
 import { UsersModule } from './modules/users/users.module.ts';
 import { MeModule } from './modules/me/me.module.ts';
 import { PokemonModule } from './modules/pokemon/pokemon.module.ts';
+import { WalletsModule } from './modules/wallets/wallets.module.ts';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PokemonModule } from './modules/pokemon/pokemon.module.ts';
     UsersModule,
     MeModule,
     PokemonModule,
+    WalletsModule,
   ],
   providers: [
     {

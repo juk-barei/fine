@@ -20,6 +20,7 @@ export const statement = {
   ],
   session: ['list', 'revoke', 'delete'],
   pokemon: ['read'],
+  wallet: ['list'],
 } as const;
 
 export const DEFAULT_ROLE = 'user';
@@ -41,9 +42,11 @@ export const roles = {
     ],
     session: ['list', 'revoke', 'delete'],
     pokemon: ['read'],
+    wallet: ['list'],
   }),
   user: ac.newRole({
     pokemon: ['read'],
+    wallet: ['list'],
   }),
 } as const;
 
