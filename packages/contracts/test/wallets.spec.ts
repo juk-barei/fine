@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  walletDetailSchema,
   walletListInputSchema,
   walletListItemSchema,
   walletPageSchema,
+  walletScreeningSchema,
 } from '../src/index.ts';
 
 const SCORED = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
@@ -93,5 +95,49 @@ describe('wallet list read model', () => {
   it('parses an empty page and rejects a negative total', () => {
     expect(walletPageSchema.safeParse({ nodes: [], total: 0 }).success).toBe(true);
     expect(walletPageSchema.safeParse({ nodes: [], total: -1 }).success).toBe(false);
+  });
+});
+
+describe('wallet detail and screening shapes', () => {
+  const wallet = {
+    address: SCORED,
+    score: 0.82,
+    band: 'high',
+    confidence: 'medium',
+    labelTier: 'tier_1',
+    decisionStatus: 'flagged',
+    lastAnalysed: '2026-11-11T13:27:15.701Z',
+  };
+
+  it('allows a detail with no graph but not a screening with no graph', () => {
+    expect(
+      walletDetailSchema.safeParse({ wallet, flags: [], simulated: true, graph: null })
+        .success,
+    ).toBe(true);
+    expect(
+      walletScreeningSchema.safeParse({ wallet, flags: [], simulated: true, graph: null })
+        .success,
+    ).toBe(false);
+  });
+
+  it('rejects a graph edge that points at unknown nodes or a short txid', () => {
+    const graph = {
+      nodes: [
+        { id: SCORED, label: 'TLa2f6…YjU7', band: 'high', tier: 'tier_2', subject: true, hops: 0 },
+      ],
+      edges: [
+        {
+          from: SCORED,
+          to: BARE,
+          amountUsdt: 100,
+          txHash: 'abc',
+          timestamp: '2026-11-11T13:27:15.701Z',
+        },
+      ],
+    };
+
+    expect(
+      walletDetailSchema.safeParse({ wallet, flags: [], simulated: true, graph }).success,
+    ).toBe(false);
   });
 });

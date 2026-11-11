@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedScreenRouteImport } from './routes/_authenticated/screen'
+import { Route as AuthenticatedWalletsIndexRouteImport } from './routes/_authenticated/wallets/index'
+import { Route as AuthenticatedWalletsAddressRouteImport } from './routes/_authenticated/wallets/$address'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +41,34 @@ const AuthenticatedScreenRoute = AuthenticatedScreenRouteImport.update({
   path: '/screen',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWalletsIndexRoute =
+  AuthenticatedWalletsIndexRouteImport.update({
+    id: '/wallets/',
+    path: '/wallets/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWalletsAddressRoute =
+  AuthenticatedWalletsAddressRouteImport.update({
+    id: '/wallets/$address',
+    path: '/wallets/$address',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/screen': typeof AuthenticatedScreenRoute
+  '/wallets/$address': typeof AuthenticatedWalletsAddressRoute
+  '/wallets/': typeof AuthenticatedWalletsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/screen': typeof AuthenticatedScreenRoute
+  '/wallets/$address': typeof AuthenticatedWalletsAddressRoute
+  '/wallets': typeof AuthenticatedWalletsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +77,26 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/screen': typeof AuthenticatedScreenRoute
+  '/_authenticated/wallets/$address': typeof AuthenticatedWalletsAddressRoute
+  '/_authenticated/wallets/': typeof AuthenticatedWalletsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/dashboard' | '/screen'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/dashboard'
+    | '/screen'
+    | '/wallets/$address'
+    | '/wallets/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/dashboard' | '/screen'
+  to:
+    | '/'
+    | '/sign-in'
+    | '/dashboard'
+    | '/screen'
+    | '/wallets/$address'
+    | '/wallets'
   id:
     | '__root__'
     | '/'
@@ -72,6 +104,8 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/_authenticated/dashboard'
     | '/_authenticated/screen'
+    | '/_authenticated/wallets/$address'
+    | '/_authenticated/wallets/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,17 +151,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedScreenRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/wallets/': {
+      id: '/_authenticated/wallets/'
+      path: '/wallets'
+      fullPath: '/wallets/'
+      preLoaderRoute: typeof AuthenticatedWalletsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/wallets/$address': {
+      id: '/_authenticated/wallets/$address'
+      path: '/wallets/$address'
+      fullPath: '/wallets/$address'
+      preLoaderRoute: typeof AuthenticatedWalletsAddressRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedScreenRoute: typeof AuthenticatedScreenRoute
+  AuthenticatedWalletsAddressRoute: typeof AuthenticatedWalletsAddressRoute
+  AuthenticatedWalletsIndexRoute: typeof AuthenticatedWalletsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedScreenRoute: AuthenticatedScreenRoute,
+  AuthenticatedWalletsAddressRoute: AuthenticatedWalletsAddressRoute,
+  AuthenticatedWalletsIndexRoute: AuthenticatedWalletsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

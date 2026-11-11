@@ -69,3 +69,62 @@ describe('WalletsService.screen', () => {
     }
   });
 });
+
+describe('WalletsService.getByAddress', () => {
+  it('returns the row with re-derived flags and graph', async () => {
+    const db = makeFakeDb();
+    db.execute.mockResolvedValueOnce({ rows: [walletRow()] });
+    const service = new WalletsService(db as never);
+
+    const detail = await runEffect(service.getByAddress({ address: ADDRESS }));
+
+    expect(detail).not.toBeNull();
+    expect(detail?.wallet).toMatchObject({ address: ADDRESS, score: 0.8213 });
+    expect(detail?.flags.length).toBeGreaterThan(0);
+    expect(detail?.graph?.nodes.filter((node) => node.subject)).toHaveLength(1);
+    expect(detail?.simulated).toBe(true);
+  });
+
+  it('returns null for an address nobody screened', async () => {
+    const db = makeFakeDb();
+    db.execute.mockResolvedValueOnce({ rows: [] });
+    const service = new WalletsService(db as never);
+
+    const detail = await runEffect(service.getByAddress({ address: ADDRESS }));
+
+    expect(detail).toBeNull();
+  });
+
+  it('rejects a malformed address without touching the database', async () => {
+    const db = makeFakeDb();
+    const service = new WalletsService(db as never);
+
+    const outcome = await runEffectResult(service.getByAddress({ address: 'nope' }));
+
+    expect(outcome._tag).toBe('Failure');
+    expect(db.execute).not.toHaveBeenCalled();
+  });
+
+  it('gives an unscored row no graph and no flags', async () => {
+    const db = makeFakeDb();
+    db.execute.mockResolvedValueOnce({
+      rows: [
+        walletRow({
+          score: null,
+          band: null,
+          confidence: null,
+          label_tier: null,
+          decision_status: null,
+          last_analysed: null,
+        }),
+      ],
+    });
+    const service = new WalletsService(db as never);
+
+    const detail = await runEffect(service.getByAddress({ address: ADDRESS }));
+
+    expect(detail?.wallet.score).toBeNull();
+    expect(detail?.graph).toBeNull();
+    expect(detail?.flags).toEqual([]);
+  });
+});

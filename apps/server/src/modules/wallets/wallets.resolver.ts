@@ -3,7 +3,7 @@ import { Inject } from '@nestjs/common';
 import { UserHasPermission } from '@thallesp/nestjs-better-auth';
 import { runGraphQL } from '../../common/effect/run.ts';
 import { WalletsService } from './wallets.service.ts';
-import { WalletPage, WalletScreening } from './wallets.types.ts';
+import { WalletDetail, WalletPage, WalletScreening } from './wallets.types.ts';
 
 @Resolver()
 export class WalletsResolver {
@@ -22,6 +22,14 @@ export class WalletsResolver {
     status?: string,
   ): Promise<WalletPage> {
     return runGraphQL(this.walletsService.list({ limit, offset, status }));
+  }
+
+  @UserHasPermission({ permission: { wallet: ['get'] } })
+  @Query(() => WalletDetail, { nullable: true })
+  async wallet(
+    @Args('address', { type: () => String }) address: string,
+  ): Promise<WalletDetail | null> {
+    return runGraphQL(this.walletsService.getByAddress({ address }));
   }
 
   @UserHasPermission({ permission: { wallet: ['create'] } })

@@ -39,7 +39,7 @@ function SignInForm({ translations: t, redirectTo }: SignInFormProps) {
           )
           return
         }
-        await navigate({ to: redirectTo ?? "/dashboard" })
+        await navigate({ to: redirectTo ?? "/wallets" })
       } catch {
         setError(t.signInError)
       }

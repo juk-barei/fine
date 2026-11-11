@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  walletDetailSchema,
   walletPageSchema,
   walletScreeningSchema,
+  type WalletDetail,
   type WalletPage,
   type WalletScreening,
 } from '@repo/contracts'
@@ -19,23 +21,6 @@ const WALLETS_QUERY = `
         labelTier
         decisionStatus
         lastAnalysed
-      }
-      graph {
-        nodes {
-          id
-          label
-          band
-          tier
-          subject
-          hops
-        }
-        edges {
-          from
-          to
-          amountUsdt
-          txHash
-          timestamp
-        }
       }
     }
   }
@@ -106,8 +91,60 @@ export function useScreenWallet() {
       )
       return walletScreeningSchema.parse(data.screenWallet)
     },
-    onSuccess: () => {
+    onSuccess: (screening) => {
       void queryClient.invalidateQueries({ queryKey: ['wallets'] })
+      void queryClient.invalidateQueries({
+        queryKey: ['wallet', screening.wallet.address],
+      })
+    },
+  })
+}
+
+const WALLET_QUERY = `
+  query Wallet($address: String!) {
+    wallet(address: $address) {
+      simulated
+      flags
+      wallet {
+        address
+        score
+        band
+        confidence
+        labelTier
+        decisionStatus
+        lastAnalysed
+      }
+      graph {
+        nodes {
+          id
+          label
+          band
+          tier
+          subject
+          hops
+        }
+        edges {
+          from
+          to
+          amountUsdt
+          txHash
+          timestamp
+        }
+      }
+    }
+  }
+`
+
+/** One wallet's page data; `null` means nobody has screened the address. */
+export function useWalletDetail(address: string | null) {
+  return useQuery({
+    queryKey: ['wallet', address],
+    enabled: address !== null,
+    queryFn: async (): Promise<WalletDetail | null> => {
+      const data = await graphqlRequest<{ wallet: unknown }>(WALLET_QUERY, {
+        address,
+      })
+      return data.wallet === null ? null : walletDetailSchema.parse(data.wallet)
     },
   })
 }

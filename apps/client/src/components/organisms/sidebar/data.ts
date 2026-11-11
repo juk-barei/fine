@@ -19,8 +19,8 @@ export function getSidebarNavGroups(
       title: dict.nav.groups.general,
       items: [
         {
-          id: 'dashboard',
-          path: '/dashboard',
+          id: 'wallets',
+          path: '/wallets',
           label: en.nav.items.dashboard,
           labelAlt: km.nav.items.dashboard,
           icon: Home,

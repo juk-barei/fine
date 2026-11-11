@@ -30,7 +30,7 @@ describe('landing guard', () => {
 
     const result = (await runLandingGuard()) as { options?: { to?: string } }
 
-    expect(result.options).toMatchObject({ to: '/dashboard' })
+    expect(result.options).toMatchObject({ to: '/wallets' })
   })
 
   it('lets an anonymous visitor see the landing', async () => {

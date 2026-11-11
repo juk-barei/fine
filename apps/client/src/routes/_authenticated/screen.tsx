@@ -1,16 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Check,
-  Loader2,
-  ScanSearch,
-  ShieldCheck,
-} from 'lucide-react'
-import type { WalletScreening } from '@repo/contracts'
+import { ArrowLeft, Check, Loader2, ScanSearch } from 'lucide-react'
 import { Button } from '@/components/atom'
-import { Sidebar, WalletGraphView } from '@/components/organisms'
+import { Sidebar } from '@/components/organisms'
 import { useAppForm } from '@/lib/form'
 import { GraphQLRequestError } from '@/lib/graphql'
 import { usePermissions } from '@/lib/permissions'
@@ -19,6 +11,9 @@ import { createScreenWalletSchema } from '@/lib/validations/screen-wallet'
 import type { SupportedLanguage } from '@/i18n'
 
 export const Route = createFileRoute('/_authenticated/screen')({
+  validateSearch: (search: Record<string, unknown>): { address?: string } => ({
+    address: typeof search.address === 'string' ? search.address : undefined,
+  }),
   component: ScreenWalletPage,
 })
 
@@ -33,19 +28,7 @@ const STEPS = [
 const MIN_RUN_MS = 1400
 const STEP_MS = 320
 
-type Phase = 'form' | 'running' | 'done'
-
-const bandBadge: Record<string, string> = {
-  high: 'border-destructive/30 bg-destructive/10 text-destructive',
-  moderate:
-    'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  low: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-}
-const bandBar: Record<string, string> = {
-  high: 'bg-destructive',
-  moderate: 'bg-amber-500',
-  low: 'bg-emerald-500',
-}
+type Phase = 'form' | 'running'
 
 function errorMessage(error: unknown): string {
   if (error instanceof GraphQLRequestError) {
@@ -61,14 +44,15 @@ function errorMessage(error: unknown): string {
 
 function ScreenWalletPage() {
   const [language] = useState<SupportedLanguage>('en')
-  const [activeNav, setActiveNav] = useState('dashboard')
+  const [activeNav, setActiveNav] = useState('wallets')
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const { has } = usePermissions()
+  const navigate = useNavigate()
+  const { address: prefilledAddress } = Route.useSearch()
   const mutation = useScreenWallet()
 
   const [phase, setPhase] = useState<Phase>('form')
   const [progress, setProgress] = useState(0)
-  const [result, setResult] = useState<WalletScreening | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [screenedAddress, setScreenedAddress] = useState('')
 
@@ -84,7 +68,6 @@ function ScreenWalletPage() {
   const runScreening = async (address: string) => {
     setScreenedAddress(address)
     setError(null)
-    setResult(null)
     setProgress(0)
     setPhase('running')
 
@@ -103,8 +86,10 @@ function ScreenWalletPage() {
       }
       clearInterval(timer)
       setProgress(STEPS.length)
-      setResult(screening)
-      setPhase('done')
+      await navigate({
+        to: '/wallets/$address',
+        params: { address: screening.wallet.address },
+      })
     } catch (failure) {
       clearInterval(timer)
       setError(errorMessage(failure))
@@ -113,7 +98,7 @@ function ScreenWalletPage() {
   }
 
   const form = useAppForm({
-    defaultValues: { address: screenedAddress },
+    defaultValues: { address: prefilledAddress ?? '' },
     validators: { onSubmit: schema },
     onSubmit: async ({ value }) => {
       await runScreening(value.address.trim())
@@ -134,7 +119,7 @@ function ScreenWalletPage() {
 
       <main className="min-w-0 flex-1 p-6 md:p-8">
         <Link
-          to="/dashboard"
+          to="/wallets"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -144,8 +129,8 @@ function ScreenWalletPage() {
         <div className="mt-3">
           <h1 className="text-lg font-semibold tracking-tight">Screen a wallet</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Paste a TRON address. The screening writes its result to the wallet
-            list, so the run is still there when you come back.
+            Paste a TRON address. The screening writes its result and opens the
+            wallet's page, so the run is still there when you come back.
           </p>
         </div>
 
@@ -158,14 +143,6 @@ function ScreenWalletPage() {
               Your role cannot create screenings. Ask an administrator for the
               wallet:create permission.
             </div>
-          ) : phase === 'done' && result ? (
-            <ScreeningResult
-              result={result}
-              onScreenAnother={() => {
-                setResult(null)
-                setPhase('form')
-              }}
-            />
           ) : phase === 'running' ? (
             <div className="rounded-2xl border bg-card/40 px-6 py-8">
               <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
@@ -248,128 +225,5 @@ function ScreenWalletPage() {
         </div>
       </main>
     </div>
-  )
-}
-
-function ScreeningResult({
-  result,
-  onScreenAnother,
-}: {
-  result: WalletScreening
-  onScreenAnother: () => void
-}) {
-  const navigate = useNavigate()
-  const { wallet, flags, simulated } = result
-  const band = wallet.band ?? 'low'
-  const score = wallet.score ?? 0
-
-  return (
-    <article className="overflow-hidden rounded-2xl border bg-card/40">
-      <header className="flex items-start justify-between gap-4 border-b px-6 py-4">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-            Screening complete
-          </p>
-          <p className="mt-1 truncate font-mono text-sm">{wallet.address}</p>
-        </div>
-        {simulated ? (
-          <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
-            Simulated
-          </span>
-        ) : null}
-      </header>
-
-      <div className="px-6 py-6">
-        <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Risk score</p>
-            <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight">
-              {score.toFixed(2)}
-            </p>
-          </div>
-          <div className="min-w-48 flex-1">
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className={`h-full rounded-full ${bandBar[band]}`}
-                style={{ width: `${Math.round(score * 100)}%` }}
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span
-                className={`rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${bandBadge[band]}`}
-              >
-                {band} risk
-              </span>
-              {wallet.decisionStatus ? (
-                <span className="rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize">
-                  {wallet.decisionStatus}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <dl className="mt-8 grid grid-cols-2 gap-4 border-t pt-6 sm:grid-cols-4">
-          {[
-            ['Confidence', wallet.confidence ?? '—'],
-            ['Label tier', wallet.labelTier?.replace('_', ' ') ?? '—'],
-            ['Decision', wallet.decisionStatus ?? '—'],
-            [
-              'Analysed',
-              wallet.lastAnalysed
-                ? new Date(wallet.lastAnalysed).toLocaleString()
-                : '—',
-            ],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <dt className="text-xs text-muted-foreground">{label}</dt>
-              <dd className="mt-1 text-sm font-medium capitalize">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="mt-6 border-t pt-6">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Fund flow
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              {result.graph.nodes.filter((node) => !node.subject).length} counterparties · 1 hop
-            </p>
-          </div>
-          <WalletGraphView graph={result.graph} />
-        </div>
-
-        <div className="mt-6 border-t pt-6">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-            Flags
-          </p>
-          {flags.length > 0 ? (
-            <ul className="mt-3 space-y-2">
-              {flags.map((flag) => (
-                <li key={flag} className="flex items-start gap-2 text-sm">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>{flag}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              No adverse exposure found.
-            </p>
-          )}
-        </div>
-      </div>
-
-      <footer className="flex flex-wrap gap-2 border-t px-6 py-4">
-        <Button onClick={() => navigate({ to: '/dashboard' })}>
-          View in wallets
-        </Button>
-        <Button variant="outline" onClick={onScreenAnother}>
-          Screen another
-        </Button>
-      </footer>
-    </article>
   )
 }

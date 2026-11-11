@@ -15,6 +15,7 @@ type WalletPage {
 
 extend type Query {
   wallets(limit: Int, offset: Int, status: String): WalletPage!
+  wallet(address: String!): WalletDetail
 }
 
 type WalletGraphNode {
@@ -37,6 +38,13 @@ type WalletGraphEdge {
 type WalletGraph {
   nodes: [WalletGraphNode!]!
   edges: [WalletGraphEdge!]!
+}
+
+type WalletDetail {
+  wallet: WalletListItem!
+  flags: [String!]!
+  simulated: Boolean!
+  graph: WalletGraph
 }
 
 type WalletScreening {

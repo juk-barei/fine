@@ -7,7 +7,7 @@ export const Route = createFileRoute('/')({
   beforeLoad: async () => {
     const { data } = await getSession()
     if (data) {
-      throw redirect({ to: '/dashboard' })
+      throw redirect({ to: '/wallets' })
     }
   },
   component: Landing,
@@ -29,7 +29,7 @@ function Landing() {
             <span className="text-sm font-medium tracking-tight">fine</span>
           </div>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/sign-in" search={{ redirect: '/dashboard' }}>
+            <Link to="/sign-in" search={{ redirect: '/wallets' }}>
               Sign in
             </Link>
           </Button>
@@ -57,7 +57,7 @@ function Landing() {
                 className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
               />
               <Button asChild className="shrink-0">
-                <Link to="/sign-in" search={{ redirect: '/dashboard' }}>
+                <Link to="/sign-in" search={{ redirect: '/wallets' }}>
                   Sign in to screen
                   <ArrowRight />
                 </Link>

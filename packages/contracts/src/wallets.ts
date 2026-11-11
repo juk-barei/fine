@@ -54,10 +54,10 @@ export const walletPageSchema = z.object({
 });
 export type WalletPage = z.infer<typeof walletPageSchema>;
 
-export const screenWalletInputSchema = z.object({
+export const walletAddressInputSchema = z.object({
   address: tronAddressSchema,
 });
-export type ScreenWalletInput = z.infer<typeof screenWalletInputSchema>;
+export type WalletAddressInput = z.infer<typeof walletAddressInputSchema>;
 
 export const walletGraphNodeSchema = z.object({
   id: tronAddressSchema,
@@ -90,10 +90,20 @@ export type WalletGraph = z.infer<typeof walletGraphSchema>;
  * The result of one screening run. `simulated` marks results produced by the
  * deterministic mock scorer, so the UI can say so rather than pretend.
  */
-export const walletScreeningSchema = z.object({
+/**
+ * A wallet page's data. The graph is null for an unscored row: there is
+ * nothing to draw, and an empty graph would read as safety.
+ */
+export const walletDetailSchema = z.object({
   wallet: walletListItemSchema,
   flags: z.array(z.string()),
   simulated: z.boolean(),
+  graph: walletGraphSchema.nullable(),
+});
+export type WalletDetail = z.infer<typeof walletDetailSchema>;
+
+/** One screening run's response: always scored, so the graph is present. */
+export const walletScreeningSchema = walletDetailSchema.extend({
   graph: walletGraphSchema,
 });
 export type WalletScreening = z.infer<typeof walletScreeningSchema>;

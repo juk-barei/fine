@@ -4,6 +4,8 @@ interface WalletListProps {
   nodes: WalletListItem[]
   isLoading?: boolean
   error?: string | null
+  /** When set, a row navigates on click and accepts Enter or Space. */
+  onSelect?: (address: string) => void
 }
 
 const headCell = 'px-4 py-2 text-left font-medium'
@@ -14,7 +16,12 @@ const bodyCell = 'px-4 py-3 align-middle'
  * absent: an unscored wallet renders as "not scored", never as a zero, and an
  * unknown band, tier or decision renders as an em dash.
  */
-export function WalletList({ nodes, isLoading = false, error = null }: WalletListProps) {
+export function WalletList({
+  nodes,
+  isLoading = false,
+  error = null,
+  onSelect,
+}: WalletListProps) {
   if (error) {
     return <p className="text-sm text-destructive">{error}</p>
   }
@@ -50,8 +57,33 @@ export function WalletList({ nodes, isLoading = false, error = null }: WalletLis
         </thead>
         <tbody>
           {nodes.map((wallet) => (
-            <tr key={wallet.address} className="border-b last:border-0">
-              <td className={`${bodyCell} font-mono text-xs`}>{wallet.address}</td>
+            <tr
+              key={wallet.address}
+              className={
+                onSelect
+                  ? 'group cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none'
+                  : 'border-b last:border-0'
+              }
+              onClick={onSelect ? () => onSelect(wallet.address) : undefined}
+              onKeyDown={
+                onSelect
+                  ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        onSelect(wallet.address)
+                      }
+                    }
+                  : undefined
+              }
+              tabIndex={onSelect ? 0 : undefined}
+            >
+              <td
+                className={`${bodyCell} font-mono text-xs ${
+                  onSelect ? 'underline-offset-4 group-hover:underline' : ''
+                }`}
+              >
+                {wallet.address}
+              </td>
               <td className={bodyCell}>
                 {wallet.score === null ? (
                   <span className="text-muted-foreground">not scored</span>

@@ -37,6 +37,13 @@ export class WalletGraph {
   edges!: WalletGraphEdge[];
 }
 
+export class WalletDetail {
+  wallet!: WalletListItem;
+  flags!: string[];
+  simulated!: boolean;
+  graph?: WalletGraph | null;
+}
+
 export class WalletScreening {
   wallet!: WalletListItem;
   flags!: string[];

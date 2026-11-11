@@ -43,7 +43,7 @@ describe('SignInForm', () => {
     await waitFor(() =>
       expect(signIn).toHaveBeenCalledWith('admin@example.com', 'password123'),
     )
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/dashboard' }))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/wallets' }))
   })
 
   it('shows the localized invalid-credentials message on 401 and keeps the email', async () => {
@@ -92,7 +92,7 @@ describe('SignInForm', () => {
     expect((pending as HTMLButtonElement).disabled).toBe(true)
 
     resolveSignIn({ ok: true })
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/dashboard' }))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/wallets' }))
   })
 
   it('does not call sign-in when the form is invalid', async () => {

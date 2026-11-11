@@ -3,10 +3,11 @@ import { Effect } from 'effect';
 import { sql } from 'drizzle-orm';
 import { InjectDrizzle } from '@nest-native/drizzle';
 import {
-  screenWalletInputSchema,
+  walletAddressInputSchema,
   walletListInputSchema,
   type WalletListItem,
   type WalletPage,
+  type WalletDetail,
   type WalletScreening,
 } from '@repo/contracts';
 import { extractRows } from '../../common/db.ts';
@@ -46,6 +47,31 @@ function toWalletListItem(row: WalletRow): WalletListItem {
       row.last_analysed === null
         ? null
         : new Date(row.last_analysed).toISOString(),
+  };
+}
+
+/**
+ * A row plus everything the mock scorer knows about the address. Reading it
+ * back is a pure re-derivation rather than a second write, so a re-screen and
+ * a read can never disagree.
+ */
+function toWalletDetail(address: string, row: WalletRow): WalletDetail {
+  if (row.score === null) {
+    return {
+      wallet: toWalletListItem(row),
+      flags: [],
+      simulated: true,
+      graph: null,
+    };
+  }
+
+  const mock = screenAddress(address);
+
+  return {
+    wallet: toWalletListItem(row),
+    flags: mock.flags,
+    simulated: true,
+    graph: mockGraph({ address, band: mock.band, tier: mock.labelTier }),
   };
 }
 
@@ -100,7 +126,7 @@ export class WalletsService {
     const self = this;
     return withResilience(
       Effect.gen(function* () {
-        const { address } = yield* parse(screenWalletInputSchema, input);
+        const { address } = yield* parse(walletAddressInputSchema, input);
         const mock = screenAddress(address);
 
         const rows = extractRows<WalletRow>(
@@ -135,16 +161,43 @@ export class WalletsService {
           );
         }
 
-        return {
-          wallet: toWalletListItem(row),
-          flags: mock.flags,
-          simulated: true,
-          graph: mockGraph({
-            address,
-            band: mock.band,
-            tier: mock.labelTier,
-          }),
-        };
+        const detail = toWalletDetail(address, row);
+        if (detail.graph === null || detail.graph === undefined) {
+          return yield* Effect.fail(
+            new DbFailure({
+              sqlState: undefined,
+              detail: 'screened row read back unscored',
+              cause: undefined,
+            }),
+          );
+        }
+
+        return { ...detail, graph: detail.graph };
+      }),
+      { idempotent: true },
+    );
+  }
+
+  getByAddress(input: unknown): Effect.Effect<WalletDetail | null, WalletError> {
+    const self = this;
+    return withResilience(
+      Effect.gen(function* () {
+        const { address } = yield* parse(walletAddressInputSchema, input);
+
+        const rows = extractRows<WalletRow>(
+          yield* tryDb(() =>
+            self.db.execute(sql`
+              select address, score, band, confidence, label_tier,
+                     decision_status, last_analysed
+              from wallets
+              where address = ${address}
+              limit 1
+            `),
+          ),
+        );
+
+        const row = rows[0];
+        return row ? toWalletDetail(address, row) : null;
       }),
       { idempotent: true },
     );
