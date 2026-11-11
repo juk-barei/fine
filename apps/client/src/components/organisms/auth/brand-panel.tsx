@@ -6,13 +6,16 @@ type BrandPanelProps = {
   language?: SupportedLanguage
 }
 
+const tiers = [
+  { tier: 'Tier 1', name: 'OFAC SDN', count: '54' },
+  { tier: 'Tier 2', name: 'Tether', count: '7,954' },
+  { tier: 'Tier 3', name: 'NBCTF', count: '581' },
+]
+
 function BrandPanel({ variant = "desktop", language = "en" }: BrandPanelProps) {
   if (variant === "mobile") {
     return (
-      <header className="relative overflow-hidden bg-card px-6 pt-10 pb-8 text-foreground md:hidden">
-        <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-foreground/[0.03]" />
-        <div className="absolute -bottom-20 -left-12 h-48 w-48 rounded-full bg-foreground/[0.02]" />
-
+      <header className="relative overflow-hidden border-b border-border bg-card px-6 py-8 md:hidden">
         <div className="relative z-10 flex flex-col items-center text-center">
           <BrandContent language={language} />
         </div>
@@ -21,11 +24,14 @@ function BrandPanel({ variant = "desktop", language = "en" }: BrandPanelProps) {
   }
 
   return (
-    <div className="relative hidden md:flex md:w-1/2 flex-col items-center justify-center overflow-hidden bg-card p-8 text-center text-foreground lg:p-14">
-      <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-foreground/[0.03]" />
-      <div className="absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-foreground/[0.02]" />
-
-      <BrandContent language={language} />
+    <div className="relative hidden overflow-hidden border-r border-border bg-card md:flex md:w-1/2 md:flex-col md:justify-center lg:p-14 md:p-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(60%_100%_at_50%_0%,rgba(255,255,255,0.06),transparent_100%)]"
+      />
+      <div className="relative z-10 mx-auto flex w-full max-w-sm flex-col">
+        <BrandContent language={language} />
+      </div>
     </div>
   )
 }
@@ -36,33 +42,41 @@ function BrandContent({ language = "en" }: { language?: SupportedLanguage }) {
 
   return (
     <>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div className="mb-8 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-muted">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
           </svg>
         </div>
         <div className="text-left">
-          <span className="text-lg font-bold tracking-tight">{dict.brand.productName}</span>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t.brandSubtitle}</p>
+          <span className="block text-base font-semibold tracking-tight">
+            {dict.brand.productName}
+          </span>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {t.brandSubtitle}
+          </p>
         </div>
       </div>
 
-      <h2 className="max-w-sm text-xl font-bold leading-snug tracking-tight lg:text-2xl">
+      <h2 className="max-w-sm text-2xl font-semibold leading-tight tracking-tight text-balance">
         {t.brandHeading}
       </h2>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
         {t.brandDescription}
       </p>
 
-      <div className="mt-6 flex items-center gap-3 border-t border-border pt-6">
-        <div className="-space-x-2 flex">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400 text-[10px] font-bold text-white ring-2 ring-card">A</div>
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-400 text-[10px] font-bold text-white ring-2 ring-card">B</div>
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-white ring-2 ring-card">C</div>
-        </div>
-        <p className="text-xs text-muted-foreground">{t.brandTrust}</p>
-      </div>
+      <dl className="mt-10 grid w-full max-w-sm grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border">
+        {tiers.map((entry) => (
+          <div key={entry.tier} className="bg-card px-3 py-3">
+            <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {entry.tier} · {entry.name}
+            </dt>
+            <dd className="mt-1 font-mono text-sm">{entry.count}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="mt-4 text-xs text-muted-foreground">{t.brandTrust}</p>
     </>
   )
 }

@@ -53,11 +53,11 @@ function SignInForm({ translations: t, redirectTo }: SignInFormProps) {
         e.stopPropagation()
         form.handleSubmit()
       }}
-      className="space-y-4"
+      className="space-y-5"
       noValidate
     >
       {error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-600">
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs font-medium text-destructive">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="flex-1">
             <p className="font-semibold">{t.signInFailed}</p>
@@ -122,7 +122,7 @@ function SignInForm({ translations: t, redirectTo }: SignInFormProps) {
             label={t.signIn}
             loadingLabel={t.signingIn}
             icon={<ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />}
-            className="group w-full justify-center gap-2 rounded-xl bg-accent-700 px-5 py-3.5 text-sm font-semibold text-white shadow-sm hover:bg-accent-600 disabled:opacity-60"
+            className="group h-11 w-full justify-center gap-2 rounded-xl px-5 text-sm font-semibold"
           />
         </form.AppForm>
       </div>

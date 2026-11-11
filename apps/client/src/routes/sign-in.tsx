@@ -22,14 +22,14 @@ function SignIn() {
       <BrandPanel variant="desktop" language={language} />
       <BrandPanel variant="mobile" language={language} />
 
-      <main className="flex flex-1 flex-col px-5 py-6 md:items-center md:justify-center md:p-10 lg:p-14">
+      <main className="flex flex-1 flex-col px-5 py-10 md:items-center md:justify-center md:p-10 lg:p-14">
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center md:flex-none">
           <div className="mb-4 flex justify-end">
             <LanguageToggle language={language} onLanguageChange={setLanguage} />
           </div>
 
           <div className="mb-6">
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+            <h1 className="text-2xl font-semibold tracking-tight text-balance">
               {t.signIn.welcomeBack}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -42,7 +42,7 @@ function SignIn() {
           <footer className="mt-8 text-center md:mt-6">
             <p className="text-xs text-muted-foreground">
               {t.signIn.needAccount}{" "}
-              <a href="#" className="font-semibold text-accent-700 hover:underline">
+              <a href="#" className="font-semibold text-foreground underline-offset-4 hover:underline">
                 {t.signIn.contactSupport}
               </a>
             </p>

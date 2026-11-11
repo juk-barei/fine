@@ -56,7 +56,7 @@ export const en = {
     brandSubtitle: 'TRC-20 USDT screening',
     brandHeading: 'Sign in to screen Tron USDT.',
     brandDescription: 'Three provenance tiers, five-hop exposure, and a dossier that states its own limits.',
-    brandTrust: 'Self-hosted, evidence-first',
+    brandTrust: 'Bounded slice · coverage reported for every query',
   },
   list: {
     countLabel: 'results',
