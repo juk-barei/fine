@@ -29,14 +29,21 @@ type Selection =
   | { kind: 'node'; node: WalletGraphNode }
   | { kind: 'edge'; edge: WalletGraphEdge }
 
-const RADIUS = 96
-const SUBJECT_RADIUS = 17
-const NODE_RADIUS = 11
+// The viewBox is wider than the ring: labels sit outside the nodes, so the
+// horizontal half-width has to hold a ring radius plus a label.
+const RING_X = 190
+const RING_Y = 105
+const SUBJECT_RADIUS = 20
+const NODE_RADIUS = 13
+const LABEL_OFFSET = 12
+const ARROW_LENGTH = 11
+const ARROW_HALF_WIDTH = 5
 
 /**
- * The single-hop neighbourhood as an SVG: the subject at the centre, one
- * counterparty per spoke, one directed transfer per spoke. Solid lines leave
- * the subject, dashed lines arrive; colour is the counterparty's risk band.
+ * The single-hop neighbourhood: the subject at the centre, one counterparty per
+ * spoke, one directed transfer per spoke. Solid lines leave the subject,
+ * dashed lines arrive; colour is the counterparty's risk band. Labels sit
+ * outside the ring with a background halo so an edge never runs through one.
  * Clicking a node or transfer shows the underlying address or transaction.
  */
 export function WalletGraphView({ graph }: { graph: WalletGraph }) {
@@ -48,21 +55,34 @@ export function WalletGraphView({ graph }: { graph: WalletGraph }) {
     return null
   }
 
-  const positions: Record<string, { x: number; y: number }> = Object.fromEntries(
+  const positions: Record<
+    string,
+    { x: number; y: number; cos: number; sin: number }
+  > = Object.fromEntries(
     counterparties.map((node, index) => {
       const angle = -Math.PI / 2 + (index * 2 * Math.PI) / counterparties.length
-      return [node.id, { x: Math.cos(angle) * RADIUS, y: Math.sin(angle) * RADIUS }]
+      const cos = Math.cos(angle)
+      const sin = Math.sin(angle)
+      return [node.id, { x: cos * RING_X, y: sin * RING_Y, cos, sin }]
     }),
   )
 
   return (
     <figure className="mt-4">
       <svg
-        viewBox="-150 -130 300 260"
+        viewBox="-320 -180 640 360"
         role="img"
         aria-label={`Fund-flow graph: ${subject.label} and ${counterparties.length} counterparties`}
-        className="mx-auto h-auto w-full max-w-md select-none"
+        className="mx-auto h-auto w-full max-w-2xl select-none"
       >
+        <ellipse
+          rx={RING_X}
+          ry={RING_Y}
+          className="fill-none stroke-border"
+          strokeWidth={1}
+          strokeDasharray="3 7"
+        />
+
         {graph.edges.map((edge) => {
           const counterpartyId = edge.from === subject.id ? edge.to : edge.from
           const point = positions[counterpartyId]
@@ -93,16 +113,17 @@ export function WalletGraphView({ graph }: { graph: WalletGraph }) {
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                strokeWidth={isSelected ? 3 : 1.5}
-                strokeDasharray={inbound ? '4 3' : undefined}
+                strokeWidth={isSelected ? 3.5 : 2}
+                strokeDasharray={inbound ? '6 4' : undefined}
+                strokeLinecap="round"
                 className={EDGE_STROKE[band]}
               />
               <polygon
-                points={`${x2},${y2} ${x2 - ux * 7 + uy * 3.5},${y2 - uy * 7 - ux * 3.5} ${x2 - ux * 7 - uy * 3.5},${y2 - uy * 7 + ux * 3.5}`}
+                points={`${x2},${y2} ${x2 - ux * ARROW_LENGTH + uy * ARROW_HALF_WIDTH},${y2 - uy * ARROW_LENGTH - ux * ARROW_HALF_WIDTH} ${x2 - ux * ARROW_LENGTH - uy * ARROW_HALF_WIDTH},${y2 - uy * ARROW_LENGTH + ux * ARROW_HALF_WIDTH}`}
                 className={EDGE_FILL[band]}
               />
               {/* Wider invisible line: the visible one is too thin to click. */}
-              <line x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth={12} className="stroke-transparent" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth={16} className="stroke-transparent" />
             </g>
           )
         })}
@@ -113,10 +134,18 @@ export function WalletGraphView({ graph }: { graph: WalletGraph }) {
         >
           <title>{`${subject.id} · subject · ${subject.band} risk`}</title>
           {selected?.kind === 'node' && selected.node.id === subject.id ? (
-            <circle r={SUBJECT_RADIUS + 4} className="fill-none stroke-foreground/60" strokeWidth={1.5} />
+            <circle r={SUBJECT_RADIUS + 6} className="fill-none stroke-foreground/60" strokeWidth={1.5} />
           ) : null}
-          <circle r={SUBJECT_RADIUS} className={NODE_FILL[subject.band]} strokeWidth={3} stroke="var(--background)" />
-          <text y={SUBJECT_RADIUS + 14} textAnchor="middle" className="fill-foreground text-[8px] font-medium">
+          <circle r={SUBJECT_RADIUS} className={NODE_FILL[subject.band]} strokeWidth={4} stroke="var(--background)" />
+          <text
+            y={SUBJECT_RADIUS + 22}
+            textAnchor="middle"
+            className="fill-foreground text-[16px] font-semibold"
+            paintOrder="stroke"
+            stroke="var(--background)"
+            strokeWidth={6}
+            strokeLinejoin="round"
+          >
             {subject.label}
           </text>
         </g>
@@ -125,6 +154,12 @@ export function WalletGraphView({ graph }: { graph: WalletGraph }) {
           const point = positions[node.id]
           if (!point) return null
           const isSelected = selected?.kind === 'node' && selected.node.id === node.id
+          const anchor = point.cos > 0.35 ? 'start' : point.cos < -0.35 ? 'end' : 'middle'
+          const labelX = point.x + point.cos * (NODE_RADIUS + LABEL_OFFSET)
+          const labelY =
+            anchor === 'middle'
+              ? point.y + (point.sin < 0 ? -1 : 1) * (NODE_RADIUS + LABEL_OFFSET) + (point.sin < 0 ? -4 : 12)
+              : point.y + 5
 
           return (
             <g
@@ -134,21 +169,25 @@ export function WalletGraphView({ graph }: { graph: WalletGraph }) {
             >
               <title>{`${node.id} · ${node.band} risk · ${node.tier.replace('_', ' ')}`}</title>
               {isSelected ? (
-                <circle cx={point.x} cy={point.y} r={NODE_RADIUS + 4} className="fill-none stroke-foreground/60" strokeWidth={1.5} />
+                <circle cx={point.x} cy={point.y} r={NODE_RADIUS + 6} className="fill-none stroke-foreground/60" strokeWidth={1.5} />
               ) : null}
               <circle
                 cx={point.x}
                 cy={point.y}
                 r={NODE_RADIUS}
                 className={NODE_FILL[node.band]}
-                strokeWidth={3}
+                strokeWidth={4}
                 stroke="var(--background)"
               />
               <text
-                x={point.x}
-                y={point.y + NODE_RADIUS + 12}
-                textAnchor="middle"
-                className="fill-muted-foreground text-[7px]"
+                x={labelX}
+                y={labelY}
+                textAnchor={anchor}
+                className="fill-muted-foreground text-[15px]"
+                paintOrder="stroke"
+                stroke="var(--background)"
+                strokeWidth={6}
+                strokeLinejoin="round"
               >
                 {node.label}
               </text>
