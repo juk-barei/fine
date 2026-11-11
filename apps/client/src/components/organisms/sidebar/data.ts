@@ -20,7 +20,7 @@ export function getSidebarNavGroups(
       items: [
         {
           id: 'dashboard',
-          path: '/',
+          path: '/dashboard',
           label: en.nav.items.dashboard,
           labelAlt: km.nav.items.dashboard,
           icon: Home,

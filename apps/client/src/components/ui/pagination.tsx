@@ -98,7 +98,7 @@ function PaginationEllipsis({
   return (
     <span
       aria-hidden
-      className={cn('flex h-7 w-7 items-center justify-center text-slate-400', className)}
+      className={cn('flex h-7 w-7 items-center justify-center text-muted-foreground', className)}
       {...props}
     >
       <MoreHorizontal className="w-4 h-4" />

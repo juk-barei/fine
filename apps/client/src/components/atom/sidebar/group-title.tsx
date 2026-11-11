@@ -7,8 +7,8 @@ const navGroupTitleVariants = cva(
   {
     variants: {
       variant: {
-        default: 'text-[#64748b]',
-        muted: 'text-slate-400',
+        default: 'text-muted-foreground',
+        muted: 'text-muted-foreground',
         primary: 'text-[#0d7c90]',
       },
     },

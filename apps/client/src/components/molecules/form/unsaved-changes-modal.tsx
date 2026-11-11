@@ -25,17 +25,17 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({
         data-slot="unsaved-changes-modal"
         role="alertdialog"
         aria-modal="true"
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
+        className="bg-card dark:bg-card border border-border dark:border-border rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
       >
         <div className="flex items-start space-x-3.5">
           <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl shrink-0">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+            <h3 className="text-base font-bold text-foreground dark:text-muted-foreground">
               {dict.unsavedChanges.title}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs text-muted-foreground dark:text-muted-foreground leading-relaxed">
               {dict.unsavedChanges.description}
             </p>
           </div>

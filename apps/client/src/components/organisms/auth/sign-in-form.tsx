@@ -39,7 +39,7 @@ function SignInForm({ translations: t, redirectTo }: SignInFormProps) {
           )
           return
         }
-        await navigate({ to: redirectTo ?? "/" })
+        await navigate({ to: redirectTo ?? "/dashboard" })
       } catch {
         setError(t.signInError)
       }
@@ -102,7 +102,7 @@ function SignInForm({ translations: t, redirectTo }: SignInFormProps) {
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-muted-foreground hover:text-foreground"
                 aria-label={t.togglePassword}
               >
                 {showPassword ? (

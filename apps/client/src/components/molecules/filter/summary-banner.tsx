@@ -38,7 +38,7 @@ export const FilterSummaryBanner: React.FC<FilterSummaryBannerProps> = ({
     <div
       data-slot="filter-summary-banner"
       className={cn(
-        'flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 text-xs text-slate-600 dark:text-slate-300',
+        'flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-muted/40 dark:bg-muted border border-border dark:border-border/80 text-xs text-muted-foreground dark:text-muted-foreground',
         className
       )}
       {...props}
@@ -46,11 +46,11 @@ export const FilterSummaryBanner: React.FC<FilterSummaryBannerProps> = ({
       <div className="flex items-center gap-1.5 font-normal">
         <span>
           {dict.list.showing}{' '}
-          <strong className="font-semibold text-slate-900 dark:text-white font-mono">
+          <strong className="font-semibold text-foreground dark:text-white font-mono">
             {filteredCount.toLocaleString()}
           </strong>{' '}
           {dict.common.of}{' '}
-          <strong className="font-semibold text-slate-900 dark:text-white font-mono">
+          <strong className="font-semibold text-foreground dark:text-white font-mono">
             {totalCount.toLocaleString()}
           </strong>{' '}
           {resolvedEntity}

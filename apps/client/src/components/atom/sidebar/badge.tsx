@@ -8,7 +8,7 @@ const navBadgeVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-slate-100 text-slate-600 border-slate-200 text-xs',
+        default: 'bg-muted text-muted-foreground border-border text-xs',
         active: 'bg-[#0d7c90]/10 text-[#0d7c90] border-[#0d7c90]/20 text-xs',
         restricted: 'bg-amber-200/80 text-amber-900 border-amber-300 text-[10px]',
         success: 'bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]',

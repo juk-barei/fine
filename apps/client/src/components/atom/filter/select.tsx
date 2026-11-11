@@ -34,7 +34,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
         disabled={disabled}
         data-slot="filter-select"
         className={cn(
-          'appearance-none bg-white text-slate-700 text-xs font-medium border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#0d7c90]/20 focus:border-[#0d7c90] cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200',
+          'appearance-none bg-card text-foreground text-xs font-medium border border-border rounded-lg pl-3 pr-8 py-1.5 shadow-2xs hover:border-border focus:outline-none focus:ring-2 focus:ring-[#0d7c90]/20 focus:border-[#0d7c90] cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50 dark:bg-card dark:border-border dark:text-muted-foreground',
           className
         )}
         {...props}
@@ -50,7 +50,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
           </option>
         ))}
       </select>
-      <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 pointer-events-none text-slate-400 shrink-0" />
+      <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 pointer-events-none text-muted-foreground shrink-0" />
     </div>
   );
 };

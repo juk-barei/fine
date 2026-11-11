@@ -8,7 +8,7 @@ const navIconBoxVariants = cva(
   {
     variants: {
       variant: {
-        default: 'text-slate-500',
+        default: 'text-muted-foreground',
         active: 'text-[#0d7c90]',
         restricted: 'text-amber-700',
       },

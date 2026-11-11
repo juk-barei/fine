@@ -79,7 +79,7 @@ export const SearchBarWithClear = React.forwardRef<HTMLInputElement, SearchBarWi
       >
         <Search
           className={cn(
-            'absolute pointer-events-none text-slate-400 dark:text-slate-500 shrink-0 transition-colors',
+            'absolute pointer-events-none text-muted-foreground dark:text-muted-foreground shrink-0 transition-colors',
             sizeStyles.icon
           )}
         />
@@ -92,7 +92,7 @@ export const SearchBarWithClear = React.forwardRef<HTMLInputElement, SearchBarWi
           disabled={disabled}
           data-slot="search-bar-input"
           className={cn(
-            'w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs transition-colors outline-none focus:border-[#0d7c90] focus:ring-2 focus:ring-[#0d7c90]/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-800',
+            'w-full bg-card dark:bg-card border border-border dark:border-border rounded-lg text-foreground dark:text-muted-foreground placeholder:text-muted-foreground dark:placeholder:text-muted-foreground shadow-2xs transition-colors outline-none focus:border-[#0d7c90] focus:ring-2 focus:ring-[#0d7c90]/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/40 dark:disabled:bg-foreground',
             sizeStyles.input,
             className
           )}
@@ -108,7 +108,7 @@ export const SearchBarWithClear = React.forwardRef<HTMLInputElement, SearchBarWi
             tabIndex={0}
             data-slot="search-bar-clear-button"
             className={cn(
-              'absolute flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-300',
+              'absolute flex items-center justify-center rounded-full text-muted-foreground hover:text-muted-foreground hover:bg-muted dark:hover:bg-foreground dark:hover:text-muted-foreground',
               sizeStyles.clearBtn
             )}
           >

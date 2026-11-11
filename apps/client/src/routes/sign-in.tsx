@@ -29,10 +29,10 @@ function SignIn() {
           </div>
 
           <div className="mb-6">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
               {t.signIn.welcomeBack}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               {t.signIn.welcomeSubtitle}
             </p>
           </div>
@@ -40,7 +40,7 @@ function SignIn() {
           <SignInForm translations={t.signIn} redirectTo={redirect} />
 
           <footer className="mt-8 text-center md:mt-6">
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-muted-foreground">
               {t.signIn.needAccount}{" "}
               <a href="#" className="font-semibold text-accent-700 hover:underline">
                 {t.signIn.contactSupport}

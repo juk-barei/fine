@@ -47,10 +47,10 @@ const statusVariants: Record<
     defaultKm: 'រង់ចាំ',
   },
   inactive: {
-    bg: 'bg-slate-100 dark:bg-slate-800',
-    text: 'text-slate-600 dark:text-slate-400',
-    border: 'border-slate-200 dark:border-slate-700',
-    dot: 'bg-slate-400',
+    bg: 'bg-muted dark:bg-card',
+    text: 'text-muted-foreground dark:text-muted-foreground',
+    border: 'border-border dark:border-border',
+    dot: 'bg-muted-foreground',
     defaultEn: 'Inactive',
     defaultKm: 'អសកម្ម',
   },
@@ -75,10 +75,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   const normalizedKey = status.toLowerCase();
   const config =
     statusVariants[normalizedKey] ?? {
-      bg: 'bg-slate-100 dark:bg-slate-800',
-      text: 'text-slate-600 dark:text-slate-400',
-      border: 'border-slate-200 dark:border-slate-700',
-      dot: 'bg-slate-400',
+      bg: 'bg-muted dark:bg-card',
+      text: 'text-muted-foreground dark:text-muted-foreground',
+      border: 'border-border dark:border-border',
+      dot: 'bg-muted-foreground',
       defaultEn: status,
       defaultKm: status,
     };

@@ -22,9 +22,9 @@ export const km: TranslationSchema = {
     avatar: 'រូបតំណាង',
   },
   brand: {
-    productName: 'គំរូ Fullstack',
+    productName: 'fine',
     systemTitle: 'FULLSTACK',
-    systemTagline: 'គំរូ Fullstack',
+    systemTagline: 'TRC-20 USDT screening',
   },
   nav: {
     groups: {
@@ -55,7 +55,7 @@ export const km: TranslationSchema = {
     signInFailed: 'ការចូលបានបរាជ័យ',
     invalidCredentials: 'អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។ សូមព្យាយាមម្តងទៀត។',
     signInError: 'មានបញ្ហាកើតឡើង។ សូមព្យាយាមម្តងទៀត។',
-    brandSubtitle: 'គំរូ Fullstack',
+    brandSubtitle: 'TRC-20 USDT screening',
     brandHeading: 'ចូលដើម្បីគ្រប់គ្រងកម្មវិធីរបស់អ្នក។',
     brandDescription: 'អតិថិជនប្រភេទ typed មួយ API GraphQL មួយ និងកិច្ចសន្យារួម — ទាំងអស់ក្នុង repo មួយ។',
     brandTrust: 'ទុកចិត្តដោយក្រុមការងាររបស់អ្នក',
@@ -79,6 +79,8 @@ export const km: TranslationSchema = {
   errors: {
     upstream_unavailable: 'សេវាកម្មខាងក្រៅមិនអាចប្រើបានទេ។ សូមព្យាយាមម្តងទៀត។',
     validation_error: 'សូមពិនិត្យទិន្នន័យរបស់អ្នក ហើយព្យាយាមម្តងទៀត។',
+    forbidden: 'You do not have access to wallets.',
+    unauthorized: 'Your session expired. Sign in again.',
     unknown: 'មានបញ្ហាកើតឡើង។ សូមព្យាយាមម្តងទៀត។',
   },
   photoUpload: {

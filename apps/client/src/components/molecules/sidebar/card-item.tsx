@@ -11,9 +11,9 @@ const navCardItemVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-white border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 font-medium',
+          'bg-card border-border text-foreground hover:bg-muted hover:border-border font-medium',
         active:
-          'bg-white border-[#0d7c90] text-[#0d7c90] shadow-sm font-semibold ring-2 ring-[#0d7c90]/20',
+          'bg-card border-[#0d7c90] text-[#0d7c90] shadow-sm font-semibold ring-2 ring-[#0d7c90]/20',
         restricted:
           'bg-amber-50/50 border-amber-200 text-amber-900 hover:bg-amber-100/60',
       },
@@ -70,7 +70,7 @@ export const NavCardItem: React.FC<NavCardItemProps> = ({
         <NavIconBox icon={item.icon} isActive={isActive} />
 
         <div className="truncate">
-          <div className="text-sm font-bold tracking-tight text-slate-800 leading-snug truncate">
+          <div className="text-sm font-bold tracking-tight text-foreground leading-snug truncate">
             {primaryLabel}
           </div>
         </div>
@@ -88,8 +88,8 @@ export const NavCardItem: React.FC<NavCardItemProps> = ({
             size="icon-xs"
             onClick={handleToggleClick}
             className={cn(
-              'rounded-lg hover:bg-slate-200/70 text-slate-500 transition-transform',
-              isExpanded && 'rotate-180 bg-slate-100 text-[#0d7c90]'
+              'rounded-lg hover:bg-muted/70 text-muted-foreground transition-transform',
+              isExpanded && 'rotate-180 bg-muted text-[#0d7c90]'
             )}
             title="Toggle actions dropdown"
             aria-label="Toggle actions dropdown"

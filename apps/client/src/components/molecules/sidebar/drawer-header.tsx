@@ -30,7 +30,7 @@ export const SidebarDrawerHeader: React.FC<SidebarDrawerHeaderProps> = ({
   return (
     <div
       className={cn(
-        'h-14 px-3.5 flex items-center justify-between border-b border-[#e2e8f0] bg-white shrink-0 md:hidden',
+        'h-14 px-3.5 flex items-center justify-between border-b border-border bg-card shrink-0 md:hidden',
         className
       )}
       {...props}
@@ -38,7 +38,7 @@ export const SidebarDrawerHeader: React.FC<SidebarDrawerHeaderProps> = ({
       <div className="flex items-center space-x-3 overflow-hidden">
         <SidebarBrandLogo />
         <div className="truncate">
-          <div className="text-xs font-bold text-[#1e293b] tracking-tight leading-tight truncate">
+          <div className="text-xs font-bold text-foreground tracking-tight leading-tight truncate">
             {resolvedPrimary}
           </div>
           <div className="text-[10px] text-[#0d7c90] font-semibold font-mono tracking-wider">
@@ -52,7 +52,7 @@ export const SidebarDrawerHeader: React.FC<SidebarDrawerHeaderProps> = ({
         variant="ghost"
         size="icon-sm"
         onClick={onClose}
-        className="text-[#64748b] hover:text-[#1e293b] hover:bg-[#f1f5f9] rounded-xl"
+        className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl"
         title={dict.common.close}
         aria-label={dict.common.close}
       >

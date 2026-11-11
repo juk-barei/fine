@@ -46,7 +46,7 @@ export const FilterSelectField: React.FC<FilterSelectFieldProps> = ({
       <Label
         htmlFor={selectId}
         className={cn(
-          'text-[10px] font-semibold text-slate-500 uppercase tracking-wider select-none shrink-0',
+          'text-[10px] font-semibold text-muted-foreground uppercase tracking-wider select-none shrink-0',
           labelClassName
         )}
       >

@@ -43,7 +43,7 @@ export const FilterPillGroup: React.FC<FilterPillGroupProps> = ({
       {...props}
     >
       {label && (
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 shrink-0 select-none mr-0.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0 select-none mr-0.5">
           {label}
         </span>
       )}

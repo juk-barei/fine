@@ -13,7 +13,7 @@ export function QuickAddRow({ options = [10, 50, 100, 500], onAdd }: QuickAddRow
           key={val}
           type="button"
           variant="outline"
-          className="h-10 rounded-xl bg-white text-[13px] font-bold text-primary shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:bg-slate-50 lg:h-12"
+          className="h-10 rounded-xl bg-card text-[13px] font-bold text-primary shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:bg-muted/40 lg:h-12"
           onClick={() => onAdd(val)}
         >
           +{val}

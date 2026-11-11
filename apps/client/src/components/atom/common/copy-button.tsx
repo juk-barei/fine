@@ -63,7 +63,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
       title={copied ? resolvedCopiedLabel : resolvedCopyLabel}
       data-slot="copy-button"
       className={cn(
-        'inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-150 cursor-pointer select-none shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d7c90]/30',
+        'inline-flex items-center justify-center gap-1 rounded-md border border-border dark:border-border bg-card dark:bg-card text-muted-foreground dark:text-muted-foreground hover:text-foreground dark:hover:text-muted-foreground hover:bg-muted/40 dark:hover:bg-foreground transition-all duration-150 cursor-pointer select-none shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d7c90]/30',
         isSmall ? 'p-1 text-[10px]' : 'p-1.5 text-xs',
         copied && 'border-emerald-300 dark:border-emerald-700/60 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400',
         className
@@ -73,7 +73,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
       {copied ? (
         <Check className={cn('text-emerald-600 dark:text-emerald-400 shrink-0 transition-transform duration-200 scale-110', isSmall ? 'w-3 h-3' : 'w-3.5 h-3.5')} />
       ) : (
-        <Copy className={cn('shrink-0 text-slate-400 dark:text-slate-500', isSmall ? 'w-3 h-3' : 'w-3.5 h-3.5')} />
+        <Copy className={cn('shrink-0 text-muted-foreground dark:text-muted-foreground', isSmall ? 'w-3 h-3' : 'w-3.5 h-3.5')} />
       )}
       {showText && (
         <span className={cn('font-medium', copied && 'text-emerald-600 dark:text-emerald-400 font-semibold')}>

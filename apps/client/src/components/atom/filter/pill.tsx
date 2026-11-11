@@ -15,7 +15,7 @@ const filterPillVariants = cva(
       isActive: {
         true: '',
         false:
-          'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-100 shadow-2xs',
+          'bg-card text-muted-foreground border-border hover:bg-muted/40 hover:text-foreground dark:bg-card dark:text-muted-foreground dark:border-border dark:hover:bg-foreground dark:hover:text-muted-foreground shadow-2xs',
       },
       size: {
         sm: 'h-6 px-2.5 text-[11px]',
@@ -28,7 +28,7 @@ const filterPillVariants = cva(
         isActive: true,
         activeVariant: 'dark',
         className:
-          'bg-slate-900 text-white border-slate-900 hover:bg-slate-800 shadow-xs dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100 dark:hover:bg-slate-200',
+          'bg-foreground text-white border-border hover:bg-foreground shadow-xs dark:bg-muted dark:text-foreground dark:border-border dark:hover:bg-muted',
       },
       {
         isActive: true,
@@ -94,9 +94,9 @@ export const FilterPill: React.FC<FilterPillProps> = ({
             'ml-0.5 px-1.5 py-0.2 rounded-full font-mono text-[10px] font-semibold transition-colors',
             isActive
               ? activeVariant === 'teal'
-                ? 'bg-white/20 text-white'
-                : 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900'
-              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                ? 'bg-card/20 text-white'
+                : 'bg-card/20 text-white dark:bg-card/20 dark:text-foreground'
+              : 'bg-muted text-muted-foreground dark:bg-card dark:text-muted-foreground'
           )}
         >
           {count}

@@ -35,7 +35,7 @@ export const Sidebar: React.FC<ExtendedSidebarProps> = ({
   );
 
   const sidebarContent = (
-    <div className="h-full flex flex-col justify-between bg-slate-50/80 border-r border-[#e2e8f0] select-none text-[#1e293b] overflow-hidden">
+    <div className="h-full flex flex-col justify-between bg-muted/40 border-r border-border select-none text-foreground overflow-hidden">
       {/* Mobile Drawer Header (Hidden on Desktop) */}
       <SidebarDrawerHeader
         language={language}
@@ -71,7 +71,7 @@ export const Sidebar: React.FC<ExtendedSidebarProps> = ({
       {/* Sideway Burger Mobile Drawer */}
       {isMobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex animate-in fade-in duration-200">
-          <div className="w-[85vw] max-w-xs h-full bg-white shadow-2xl animate-in slide-in-from-left duration-200 overflow-hidden shrink-0">
+          <div className="w-[85vw] max-w-xs h-full bg-card shadow-2xl animate-in slide-in-from-left duration-200 overflow-hidden shrink-0">
             {sidebarContent}
           </div>
           <div

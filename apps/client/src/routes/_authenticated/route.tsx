@@ -23,9 +23,9 @@ function AuthenticatedLayout() {
 
   return (
     <>
-      <div className="flex items-center justify-end gap-3 border-b border-slate-200 px-4 py-2">
+      <div className="flex items-center justify-end gap-3 border-b border-border px-4 py-2">
         {user?.email ? (
-          <span className="text-xs text-slate-500">{user.email}</span>
+          <span className="text-xs text-muted-foreground">{user.email}</span>
         ) : null}
         <SignOutButton label={t.common.signOut} />
       </div>

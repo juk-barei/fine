@@ -14,7 +14,7 @@ function LanguageToggle({ language, onLanguageChange, className }: LanguageToggl
       role="group"
       aria-label="Language selection"
       className={cn(
-        "inline-flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/80 shadow-xs",
+        "inline-flex items-center rounded-xl bg-muted p-1 border border-border/80 shadow-xs",
         className
       )}
     >
@@ -27,8 +27,8 @@ function LanguageToggle({ language, onLanguageChange, className }: LanguageToggl
         className={cn(
           "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
           language === "en"
-            ? "bg-white text-accent-700 shadow-xs"
-            : "text-slate-500 hover:text-slate-800"
+            ? "bg-card text-accent-700 shadow-xs"
+            : "text-muted-foreground hover:text-foreground"
         )}
       >
         EN
@@ -42,8 +42,8 @@ function LanguageToggle({ language, onLanguageChange, className }: LanguageToggl
         className={cn(
           "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
           language === "km"
-            ? "bg-white text-accent-700 shadow-xs"
-            : "text-slate-500 hover:text-slate-800"
+            ? "bg-card text-accent-700 shadow-xs"
+            : "text-muted-foreground hover:text-foreground"
         )}
       >
         ខ្មែរ

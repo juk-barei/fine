@@ -20,9 +20,9 @@ export const en = {
     avatar: 'Avatar',
   },
   brand: {
-    productName: 'Fullstack Template',
+    productName: 'fine',
     systemTitle: 'FULLSTACK',
-    systemTagline: 'Fullstack Template',
+    systemTagline: 'TRC-20 USDT screening',
   },
   nav: {
     groups: {
@@ -31,7 +31,7 @@ export const en = {
       administration: 'ADMINISTRATION',
     },
     items: {
-      dashboard: 'Dashboard',
+      dashboard: 'Wallets',
       users: 'Users & Roles',
     },
   },
@@ -53,10 +53,10 @@ export const en = {
     signInFailed: 'Sign-in failed',
     invalidCredentials: 'Invalid email or password. Please try again.',
     signInError: 'Something went wrong. Please try again.',
-    brandSubtitle: 'Fullstack Starter',
-    brandHeading: 'Sign in to manage your application.',
-    brandDescription: 'A typed client, a GraphQL API, and shared contracts — all in one repo.',
-    brandTrust: 'Trusted by your team',
+    brandSubtitle: 'TRC-20 USDT screening',
+    brandHeading: 'Sign in to screen Tron USDT.',
+    brandDescription: 'Three provenance tiers, five-hop exposure, and a dossier that states its own limits.',
+    brandTrust: 'Self-hosted, evidence-first',
   },
   list: {
     countLabel: 'results',
@@ -77,6 +77,8 @@ export const en = {
   errors: {
     upstream_unavailable: 'The upstream service is unavailable. Try again shortly.',
     validation_error: 'Please check your input and try again.',
+    forbidden: 'You do not have access to wallets.',
+    unauthorized: 'Your session expired. Sign in again.',
     unknown: 'Something went wrong. Please try again.',
   },
   photoUpload: {

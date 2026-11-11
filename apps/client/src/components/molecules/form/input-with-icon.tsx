@@ -12,7 +12,7 @@ type InputWithIconProps = InputHTMLAttributes<HTMLInputElement> & {
 function InputWithIcon({ icon, rightElement, className, ...props }: InputWithIconProps) {
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground">
         {icon}
       </span>
       <Input className={cn("pl-10", rightElement && "pr-11", className)} {...props} />

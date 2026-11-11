@@ -11,11 +11,11 @@ export function Forbidden({ language = 'en' }: { language?: SupportedLanguage })
       role="alert"
       className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-center"
     >
-      <ShieldAlert className="h-10 w-10 text-slate-400" />
-      <h2 className="text-lg font-semibold text-slate-900">
+      <ShieldAlert className="h-10 w-10 text-muted-foreground" />
+      <h2 className="text-lg font-semibold text-foreground">
         {t.common.accessDenied}
       </h2>
-      <p className="text-sm text-slate-500">{t.common.restrictedAccess}</p>
+      <p className="text-sm text-muted-foreground">{t.common.restrictedAccess}</p>
     </div>
   );
 }

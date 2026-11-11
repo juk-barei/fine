@@ -119,7 +119,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
   };
 
   return (
-    <div className={`space-y-3 p-4 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-200 dark:border-slate-800 transition-colors ${className}`}>
+    <div className={`space-y-3 p-4 bg-muted/40 dark:bg-muted rounded-2xl border border-border dark:border-border transition-colors ${className}`}>
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -132,12 +132,12 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
 
       {/* Header / Title */}
       <div className="flex items-center justify-between">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-foreground dark:text-muted-foreground flex items-center space-x-1.5">
           <ImageIcon className="w-4 h-4 text-[#0d7c90]" />
           <span>{displayLabel}</span>
-          <span className="text-[10px] text-slate-400 font-normal lowercase">{t.photoUpload.optional}</span>
+          <span className="text-[10px] text-muted-foreground font-normal lowercase">{t.photoUpload.optional}</span>
         </label>
-        <span className="text-[10px] text-slate-400 font-normal">
+        <span className="text-[10px] text-muted-foreground font-normal">
           {t.photoUpload.supportedFormats}
         </span>
       </div>
@@ -145,8 +145,8 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
       {/* Main Upload / Preview Area */}
       {value ? (
         // Preview State when image exists
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
-          <div className="relative w-20 h-20 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 group">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 p-3 bg-card dark:bg-card/80 rounded-xl border border-border dark:border-border/80 shadow-2xs">
+          <div className="relative w-20 h-20 rounded-xl bg-muted dark:bg-card border border-border dark:border-border overflow-hidden shrink-0 group">
             <img
               src={value}
               alt="Uploaded image"
@@ -161,7 +161,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
                 {t.photoUpload.imageSelected}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs">
+            <p className="text-[11px] text-muted-foreground dark:text-muted-foreground truncate max-w-xs">
               {value.startsWith('data:')
                 ? t.photoUpload.uploadedFromDevice
                 : value}
@@ -201,19 +201,19 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
           onClick={handleTriggerUpload}
           className={`flex flex-col items-center justify-center p-5 rounded-xl border-2 border-dashed transition-all cursor-pointer text-center ${
             disabled
-              ? 'opacity-60 cursor-not-allowed border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40'
+              ? 'opacity-60 cursor-not-allowed border-border dark:border-border bg-muted/50 dark:bg-card/40'
               : isDragging
               ? 'border-[#0d7c90] bg-[#0d7c90]/5 dark:bg-[#0d7c90]/10 scale-[1.005]'
-              : 'border-slate-200 dark:border-slate-700 hover:border-[#0d7c90]/60 hover:bg-white dark:hover:bg-slate-800/60 bg-white/70 dark:bg-slate-850/60'
+              : 'border-border dark:border-border hover:border-[#0d7c90]/60 hover:bg-card dark:hover:bg-foreground/60 bg-card/70 dark:bg-muted/60'
           }`}
         >
           <div className="w-10 h-10 rounded-full bg-[#0d7c90]/10 dark:bg-[#0d7c90]/20 flex items-center justify-center text-[#0d7c90] mb-2">
             <Upload className="w-5 h-5" />
           </div>
-          <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+          <p className="text-xs font-bold text-foreground dark:text-muted-foreground">
             {t.photoUpload.dragDropText}
           </p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+          <p className="text-[11px] text-muted-foreground dark:text-muted-foreground mt-0.5">
             {t.photoUpload.supportedFormats}
           </p>
           <Button
@@ -237,14 +237,14 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
       )}
 
       {/* URL Input Toggle */}
-      <div className="pt-1 flex items-center justify-end text-xs border-t border-slate-200/60 dark:border-slate-800/80">
+      <div className="pt-1 flex items-center justify-end text-xs border-t border-border/60 dark:border-border/80">
         <Button
           type="button"
           variant="ghost"
           size="xs"
           disabled={disabled}
           onClick={() => setShowUrlInput(!showUrlInput)}
-          className="text-slate-500 hover:text-[#0d7c90] dark:text-slate-400 dark:hover:text-[#0d7c90]"
+          className="text-muted-foreground hover:text-[#0d7c90] dark:text-muted-foreground dark:hover:text-[#0d7c90]"
         >
           <Link className="w-3 h-3" />
           <span>{t.photoUpload.enterUrl}</span>
@@ -266,7 +266,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
               }
             }}
             placeholder={t.photoUpload.urlPlaceholder}
-            className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0d7c90] text-slate-900 dark:text-slate-100"
+            className="flex-1 px-3 py-1.5 text-xs bg-card dark:bg-card border border-border dark:border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0d7c90] text-foreground dark:text-muted-foreground"
           />
           <Button
             type="button"

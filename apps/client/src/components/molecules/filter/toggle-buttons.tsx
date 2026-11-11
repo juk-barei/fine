@@ -62,7 +62,7 @@ export const FilterToggleButtons: React.FC<FilterToggleButtonsProps> = ({
           'relative inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold select-none shadow-2xs',
           isRouteActive
             ? 'border-[#0d7c90] bg-[#0d7c90]/10 text-[#0d7c90] dark:bg-[#0d7c90]/20 dark:text-teal-300 dark:border-[#0d7c90]'
-            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+            : 'border-border bg-card text-foreground hover:bg-muted/40 hover:text-foreground dark:bg-card dark:border-border dark:text-muted-foreground dark:hover:bg-foreground'
         )}
       >
         <RouteIcon className="w-3.5 h-3.5 shrink-0" />
@@ -88,7 +88,7 @@ export const FilterToggleButtons: React.FC<FilterToggleButtonsProps> = ({
           'relative inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold select-none shadow-2xs',
           isFilterActive
             ? 'border-[#0d7c90] bg-[#0d7c90]/10 text-[#0d7c90] dark:bg-[#0d7c90]/20 dark:text-teal-300 dark:border-[#0d7c90]'
-            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+            : 'border-border bg-card text-foreground hover:bg-muted/40 hover:text-foreground dark:bg-card dark:border-border dark:text-muted-foreground dark:hover:bg-foreground'
         )}
       >
         <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />

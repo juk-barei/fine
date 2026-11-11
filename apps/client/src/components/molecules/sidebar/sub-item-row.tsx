@@ -33,8 +33,8 @@ export const SubNavItemRow: React.FC<SubNavItemRowProps> = ({
       className={cn(
         'w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all text-left font-medium cursor-pointer',
         isActive
-          ? 'bg-white text-[#0d7c90] shadow-2xs border border-slate-200 font-semibold'
-          : 'text-slate-600 hover:text-[#0d7c90] hover:bg-white hover:shadow-2xs border border-transparent hover:border-slate-200',
+          ? 'bg-card text-[#0d7c90] shadow-2xs border border-border font-semibold'
+          : 'text-muted-foreground hover:text-[#0d7c90] hover:bg-card hover:shadow-2xs border border-transparent hover:border-border',
         className
       )}
       {...props}
