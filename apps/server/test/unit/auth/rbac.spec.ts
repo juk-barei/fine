@@ -17,13 +17,19 @@ describe('roles', () => {
     expect(roles.user.authorize({ user: ['set-role'] }).success).toBe(false);
   });
 
-  it('both roles allow pokemon:read', () => {
-    expect(roles.admin.authorize({ pokemon: ['read'] })).toEqual({
+  it('both roles allow the investigative wallet permissions', () => {
+    expect(roles.admin.authorize({ wallet: ['list'] })).toEqual({
       success: true,
     });
-    expect(roles.user.authorize({ pokemon: ['read'] })).toEqual({
+    expect(roles.user.authorize({ wallet: ['list'] })).toEqual({
       success: true,
     });
+  });
+
+  it('only admin reaches the metrics and identity surfaces', () => {
+    expect(roles.user.authorize({ admin: ['read'] }).success).toBe(false);
+    expect(roles.admin.authorize({ admin: ['read'] }).success).toBe(true);
+    expect(roles.user.authorize({ user: ['list'] }).success).toBe(false);
   });
 });
 
@@ -56,12 +62,24 @@ describe('permissionsForRoles', () => {
 
     expect(permissions).toContain('user:set-role');
     expect(permissions).toContain('session:revoke');
-    expect(permissions).toContain('pokemon:read');
+    expect(permissions).toContain('wallet:list');
     expect(permissions).toEqual([...permissions].sort());
   });
 
   it('grants the user role its investigative permissions', () => {
-    expect(permissionsForRoles('user')).toEqual(['pokemon:read', 'wallet:list']);
+    expect(permissionsForRoles('user')).toEqual([
+      'decision:create',
+      'decision:read',
+      'dossier:export',
+      'dossier:read',
+      'label:read',
+      'settings:read',
+      'settings:update',
+      'trace:read',
+      'wallet:create',
+      'wallet:get',
+      'wallet:list',
+    ]);
   });
 
   it('unions multiple roles', () => {

@@ -4,8 +4,6 @@ import {
   ERROR_CODES,
   errorEnvelopeSchema,
   permissionSchema,
-  pokemonListInputSchema,
-  pokemonSchema,
   sessionUserSchema,
 } from '../src/index.ts';
 
@@ -50,40 +48,3 @@ describe('auth contract', () => {
   });
 });
 
-describe('pokemon contract', () => {
-  it('accepts a well-formed pokemon', () => {
-    const result = pokemonSchema.safeParse({
-      id: 25,
-      name: 'pikachu',
-      height: 4,
-      weight: 60,
-      types: ['electric'],
-      spriteUrl: 'https://example.com/pikachu.png',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('allows a null sprite', () => {
-    const result = pokemonSchema.safeParse({
-      id: 25,
-      name: 'pikachu',
-      height: 4,
-      weight: 60,
-      types: ['electric'],
-      spriteUrl: null,
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('applies default pagination values', () => {
-    const result = pokemonListInputSchema.parse({});
-
-    expect(result).toEqual({ limit: 20, offset: 0 });
-  });
-
-  it('rejects pagination beyond the maximum limit', () => {
-    expect(pokemonListInputSchema.safeParse({ limit: 101 }).success).toBe(false);
-  });
-});

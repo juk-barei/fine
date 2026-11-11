@@ -3,9 +3,12 @@ import { createAccessControl } from 'better-auth/plugins/access';
 /**
  * RBAC resources and actions. This is the single source of truth for the
  * permission strings (`resource:action`) enforced by server guards and consumed
- * by the client's permission context.
+ * by the client's permission context and navigation filter.
  *
- * Add your application's resources here, then grant them to roles below.
+ * Two roles: `admin` holds everything; `user` holds the investigative surface
+ * (screen and read wallets, trace, export dossiers, record decisions, read
+ * labels, manage their own settings). Identity administration — users,
+ * sessions — and the metrics page stay admin-only.
  */
 export const statement = {
   user: [
@@ -19,8 +22,13 @@ export const statement = {
     'ban',
   ],
   session: ['list', 'revoke', 'delete'],
-  pokemon: ['read'],
-  wallet: ['list'],
+  admin: ['read'],
+  wallet: ['create', 'list', 'get'],
+  trace: ['read'],
+  dossier: ['read', 'export'],
+  decision: ['create', 'read'],
+  label: ['read'],
+  settings: ['read', 'update'],
 } as const;
 
 export const DEFAULT_ROLE = 'user';
@@ -41,12 +49,21 @@ export const roles = {
       'ban',
     ],
     session: ['list', 'revoke', 'delete'],
-    pokemon: ['read'],
-    wallet: ['list'],
+    admin: ['read'],
+    wallet: ['create', 'list', 'get'],
+    trace: ['read'],
+    dossier: ['read', 'export'],
+    decision: ['create', 'read'],
+    label: ['read'],
+    settings: ['read', 'update'],
   }),
   user: ac.newRole({
-    pokemon: ['read'],
-    wallet: ['list'],
+    wallet: ['create', 'list', 'get'],
+    trace: ['read'],
+    dossier: ['read', 'export'],
+    decision: ['create', 'read'],
+    label: ['read'],
+    settings: ['read', 'update'],
   }),
 } as const;
 

@@ -18,7 +18,7 @@ Run from the repository root unless noted.
 - Migrations: `npm run db:generate`, `npm run db:migrate`
 - Seed admin: `npm run seed:admin`
 - Server e2e (needs a database and `.env`): `npm run test:e2e -w @repo/server`,
-  `npm run test:e2e:pokemon -w @repo/server`
+  `npm run test:e2e:users -w @repo/server`
 
 After any change, run `npm run typecheck` and the relevant test file; run the
 full `npm run test` before finishing.

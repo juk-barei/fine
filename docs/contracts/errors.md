@@ -25,9 +25,9 @@ HTTP status is derived from the first error. The body is a standard GraphQL resp
   "data": null,
   "errors": [
     {
-      "message": "Pokemon not found",
+      "message": "Resource not found",
       "extensions": {
-        "code": "POKEMON_NOT_FOUND",
+        "code": "NOT_FOUND",
         "statusCode": 404
       }
     }
@@ -102,7 +102,6 @@ The canonical list lives in `@repo/contracts` (`ERROR_CODES`).
 | `FORBIDDEN` | 403 | Authenticated but lacking permission |
 | `NOT_FOUND` | 404 | Generic missing resource |
 | `USER_NOT_FOUND` | 404 | Unknown user id |
-| `POKEMON_NOT_FOUND` | 404 | Unknown pokemon name (example feature) |
 | `CONFLICT` | 409 | Generic conflict |
 | `EMAIL_TAKEN` | 409 | Email already exists |
 | `UNKNOWN_ROLE` | 400 | The supplied role is not configured |

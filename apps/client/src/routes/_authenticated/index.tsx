@@ -47,12 +47,6 @@ function Index() {
             example — that exercises the shared contracts, the GraphQL API, and
             the client data layer end to end.
           </p>
-          <Link
-            to="/pokemon"
-            className="mt-4 inline-flex items-center rounded-xl bg-accent-700 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-600"
-          >
-            Browse the Pokemon example
-          </Link>
         </div>
       </main>
     </div>

@@ -11,7 +11,7 @@ function Consumer() {
   if (isLoading) return <span data-testid="state">loading</span>
   return (
     <span data-testid="state">
-      {`${user?.role}:${has('pokemon:read')}:${has('user:list')}`}
+      {`${user?.role}:${has('wallet:list')}:${has('user:list')}`}
     </span>
   )
 }
@@ -38,7 +38,7 @@ describe('PermissionsProvider', () => {
       name: 'Ops',
       email: 'ops@b.test',
       role: 'user',
-      permissions: ['pokemon:read'],
+      permissions: ['wallet:list'],
     })
 
     render(

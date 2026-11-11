@@ -50,7 +50,6 @@ jobs:
       TRUSTED_ORIGINS: http://localhost:3000
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: CI-Password-123!
-      POKEAPI_BASE_URL: https://pokeapi.co/api/v2
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -63,4 +62,3 @@ jobs:
       - run: npm run seed:admin -w @repo/server
       - run: npm run test:e2e -w @repo/server
       - run: npm run test:e2e:users -w @repo/server
-      - run: npm run test:e2e:pokemon -w @repo/server

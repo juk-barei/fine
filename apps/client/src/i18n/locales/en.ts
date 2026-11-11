@@ -32,7 +32,6 @@ export const en = {
     },
     items: {
       dashboard: 'Dashboard',
-      pokemon: 'Pokemon',
       users: 'Users & Roles',
     },
   },
@@ -76,7 +75,6 @@ export const en = {
     inactive: 'Inactive',
   },
   errors: {
-    pokemon_not_found: 'No pokemon matches that name.',
     upstream_unavailable: 'The upstream service is unavailable. Try again shortly.',
     validation_error: 'Please check your input and try again.',
     unknown: 'Something went wrong. Please try again.',

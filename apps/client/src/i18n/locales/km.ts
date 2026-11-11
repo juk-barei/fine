@@ -34,7 +34,6 @@ export const km: TranslationSchema = {
     },
     items: {
       dashboard: 'ផ្ទាំងបញ្ជា',
-      pokemon: 'Pokemon',
       users: 'អ្នកប្រើប្រាស់',
     },
   },
@@ -78,7 +77,6 @@ export const km: TranslationSchema = {
     inactive: 'អសកម្ម',
   },
   errors: {
-    pokemon_not_found: 'រកមិនឃើញ Pokemon ដែលត្រូវនឹងឈ្មោះនេះទេ។',
     upstream_unavailable: 'សេវាកម្មខាងក្រៅមិនអាចប្រើបានទេ។ សូមព្យាយាមម្តងទៀត។',
     validation_error: 'សូមពិនិត្យទិន្នន័យរបស់អ្នក ហើយព្យាយាមម្តងទៀត។',
     unknown: 'មានបញ្ហាកើតឡើង។ សូមព្យាយាមម្តងទៀត។',

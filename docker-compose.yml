@@ -32,7 +32,6 @@ services:
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:3000,http://localhost:80}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
-      POKEAPI_BASE_URL: ${POKEAPI_BASE_URL:-https://pokeapi.co/api/v2}
     depends_on:
       db:
         condition: service_healthy

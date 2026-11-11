@@ -29,7 +29,7 @@ describe('RequirePermission', () => {
     mockPermissions(() => true)
 
     render(
-      <RequirePermission permission="pokemon:read" language="en">
+      <RequirePermission permission="wallet:list" language="en">
         <span>secret content</span>
       </RequirePermission>,
     )
@@ -42,7 +42,7 @@ describe('RequirePermission', () => {
     mockPermissions(() => false)
 
     render(
-      <RequirePermission permission="pokemon:read" language="en">
+      <RequirePermission permission="wallet:list" language="en">
         <span>secret content</span>
       </RequirePermission>,
     )
@@ -56,7 +56,7 @@ describe('RequirePermission', () => {
     mockPermissions(() => false, true)
 
     const { container } = render(
-      <RequirePermission permission="pokemon:read" language="en">
+      <RequirePermission permission="wallet:list" language="en">
         <span>secret content</span>
       </RequirePermission>,
     )

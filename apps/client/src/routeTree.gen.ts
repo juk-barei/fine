@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedPokemonRouteImport } from './routes/_authenticated/pokemon'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -28,40 +27,27 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPokemonRoute = AuthenticatedPokemonRouteImport.update({
-  id: '/pokemon',
-  path: '/pokemon',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/sign-in': typeof SignInRoute
-  '/pokemon': typeof AuthenticatedPokemonRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
-  '/pokemon': typeof AuthenticatedPokemonRoute
   '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/sign-in': typeof SignInRoute
-  '/_authenticated/pokemon': typeof AuthenticatedPokemonRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/pokemon'
+  fullPaths: '/' | '/sign-in'
   fileRoutesByTo: FileRoutesByTo
-  to: '/sign-in' | '/pokemon' | '/'
-  id:
-    | '__root__'
-    | '/_authenticated'
-    | '/sign-in'
-    | '/_authenticated/pokemon'
-    | '/_authenticated/'
+  to: '/sign-in' | '/'
+  id: '__root__' | '/_authenticated' | '/sign-in' | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -92,23 +78,14 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/pokemon': {
-      id: '/_authenticated/pokemon'
-      path: '/pokemon'
-      fullPath: '/pokemon'
-      preLoaderRoute: typeof AuthenticatedPokemonRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedPokemonRoute: typeof AuthenticatedPokemonRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedPokemonRoute: AuthenticatedPokemonRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 

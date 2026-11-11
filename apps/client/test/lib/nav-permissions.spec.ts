@@ -30,7 +30,7 @@ function buildGroups(): NavGroup[] {
           labelAlt: 'R',
           icon,
           badge: null,
-          permission: 'pokemon:read',
+          permission: 'wallet:list',
           subItems: [
             {
               id: 'records-create',
@@ -84,7 +84,7 @@ describe('filterNavGroupsByPermission', () => {
   })
 
   it('hides inaccessible items, keeps unguarded items, and prunes sub-items', () => {
-    const has = (permission: string) => permission === 'pokemon:read'
+    const has = (permission: string) => permission === 'wallet:list'
 
     const result = filterNavGroupsByPermission(buildGroups(), has)
 
