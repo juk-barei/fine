@@ -4,6 +4,7 @@ import { OptionalAuth } from '@thallesp/nestjs-better-auth';
 import type { FastifyRequest } from 'fastify';
 import { AppAuthService } from './auth.service.ts';
 import { AuthSessionInfo, AuthUser } from './auth.types.ts';
+import { permissionsForRoles } from '../../auth/rbac.ts';
 
 type GuardedUser = {
   id: string;
@@ -34,11 +35,14 @@ export class AuthResolver {
       return null;
     }
 
+    const role = user.role ?? 'user';
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role ?? 'user',
+      role,
+      permissions: permissionsForRoles(role),
       firstName: user.firstName ?? null,
       lastName: user.lastName ?? null,
       image: user.image ?? null,

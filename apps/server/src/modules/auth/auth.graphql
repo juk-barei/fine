@@ -3,6 +3,7 @@ type AuthUser {
   name: String!
   email: String!
   role: String!
+  permissions: [String!]!
   firstName: String
   lastName: String
   image: String

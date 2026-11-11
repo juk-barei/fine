@@ -3,6 +3,7 @@ export class AuthUser {
   name!: string;
   email!: string;
   role!: string;
+  permissions!: string[];
   firstName?: string | null;
   lastName?: string | null;
   image?: string | null;

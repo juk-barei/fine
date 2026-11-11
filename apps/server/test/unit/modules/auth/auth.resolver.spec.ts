@@ -4,6 +4,7 @@ import type { FastifyRequest } from 'fastify';
 vi.mock('../../../../src/auth.ts', () => ({ auth: {} }));
 
 import { AuthResolver } from '../../../../src/modules/auth/auth.resolver.ts';
+import { permissionsForRoles } from '../../../../src/auth/rbac.ts';
 
 type Req = FastifyRequest & {
   user?: Record<string, unknown> | null;
@@ -49,7 +50,22 @@ describe('AuthResolver.me', () => {
       firstName: 'Admin',
       lastName: null,
       image: null,
+      permissions: permissionsForRoles('admin'),
     });
+  });
+
+  it('derives permissions from the role and defaults to the user role', () => {
+    const { resolver } = createResolver();
+    const req = {
+      headers: {},
+      user: { id: 'u2', name: 'Analyst', email: 'analyst@b.test' },
+    } as unknown as Req;
+
+    const result = resolver.me(req as never);
+
+    expect(result?.role).toBe('user');
+    expect(result?.permissions).toEqual(permissionsForRoles('user'));
+    expect(result?.permissions).not.toContain('admin:read');
   });
 
   it('defaults the role to user when missing', () => {
