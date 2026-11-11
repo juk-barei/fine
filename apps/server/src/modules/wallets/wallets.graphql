@@ -17,10 +17,33 @@ extend type Query {
   wallets(limit: Int, offset: Int, status: String): WalletPage!
 }
 
+type WalletGraphNode {
+  id: ID!
+  label: String!
+  band: String!
+  tier: String!
+  subject: Boolean!
+  hops: Int!
+}
+
+type WalletGraphEdge {
+  from: ID!
+  to: ID!
+  amountUsdt: Float!
+  txHash: String!
+  timestamp: String!
+}
+
+type WalletGraph {
+  nodes: [WalletGraphNode!]!
+  edges: [WalletGraphEdge!]!
+}
+
 type WalletScreening {
   wallet: WalletListItem!
   flags: [String!]!
   simulated: Boolean!
+  graph: WalletGraph!
 }
 
 extend type Mutation {

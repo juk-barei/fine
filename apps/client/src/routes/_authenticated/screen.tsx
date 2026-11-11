@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import type { WalletScreening } from '@repo/contracts'
 import { Button } from '@/components/atom'
-import { Sidebar } from '@/components/organisms'
+import { Sidebar, WalletGraphView } from '@/components/organisms'
 import { useAppForm } from '@/lib/form'
 import { GraphQLRequestError } from '@/lib/graphql'
 import { usePermissions } from '@/lib/permissions'
@@ -327,6 +327,18 @@ function ScreeningResult({
             </div>
           ))}
         </dl>
+
+        <div className="mt-6 border-t pt-6">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+              Fund flow
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {result.graph.nodes.filter((node) => !node.subject).length} counterparties · 1 hop
+            </p>
+          </div>
+          <WalletGraphView graph={result.graph} />
+        </div>
 
         <div className="mt-6 border-t pt-6">
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">

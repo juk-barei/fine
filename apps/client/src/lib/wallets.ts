@@ -20,6 +20,23 @@ const WALLETS_QUERY = `
         decisionStatus
         lastAnalysed
       }
+      graph {
+        nodes {
+          id
+          label
+          band
+          tier
+          subject
+          hops
+        }
+        edges {
+          from
+          to
+          amountUsdt
+          txHash
+          timestamp
+        }
+      }
     }
   }
 `
@@ -52,6 +69,23 @@ const SCREEN_WALLET_MUTATION = `
         labelTier
         decisionStatus
         lastAnalysed
+      }
+      graph {
+        nodes {
+          id
+          label
+          band
+          tier
+          subject
+          hops
+        }
+        edges {
+          from
+          to
+          amountUsdt
+          txHash
+          timestamp
+        }
       }
     }
   }

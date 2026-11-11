@@ -33,6 +33,8 @@ describe('WalletsService.screen', () => {
     expect(db.execute).toHaveBeenCalledTimes(1);
     expect(result.simulated).toBe(true);
     expect(result.flags.length).toBeGreaterThan(0);
+    expect(result.graph.nodes.filter((node) => node.subject)).toHaveLength(1);
+    expect(result.graph.edges).toHaveLength(result.graph.nodes.length - 1);
     expect(result.wallet).toEqual({
       address: ADDRESS,
       score: 0.8213,

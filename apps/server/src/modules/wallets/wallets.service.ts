@@ -18,7 +18,7 @@ import {
   withResilience,
   type ValidationFailure,
 } from '../../common/effect/index.ts';
-import { screenAddress } from './wallets.mock.ts';
+import { mockGraph, screenAddress } from './wallets.mock.ts';
 
 type WalletError = ValidationFailure | DbFailure;
 
@@ -139,6 +139,11 @@ export class WalletsService {
           wallet: toWalletListItem(row),
           flags: mock.flags,
           simulated: true,
+          graph: mockGraph({
+            address,
+            band: mock.band,
+            tier: mock.labelTier,
+          }),
         };
       }),
       { idempotent: true },

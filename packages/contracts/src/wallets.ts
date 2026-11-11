@@ -59,6 +59,33 @@ export const screenWalletInputSchema = z.object({
 });
 export type ScreenWalletInput = z.infer<typeof screenWalletInputSchema>;
 
+export const walletGraphNodeSchema = z.object({
+  id: tronAddressSchema,
+  label: z.string(),
+  band: walletBandSchema,
+  tier: labelTierSchema,
+  /** The screened wallet itself; exactly one node carries this. */
+  subject: z.boolean(),
+  hops: z.number().int().min(0),
+});
+export type WalletGraphNode = z.infer<typeof walletGraphNodeSchema>;
+
+export const walletGraphEdgeSchema = z.object({
+  /** Sender and receiver; the order carries the direction of the transfer. */
+  from: tronAddressSchema,
+  to: tronAddressSchema,
+  amountUsdt: z.number().positive(),
+  txHash: z.string().regex(/^[0-9a-f]{64}$/, 'expected a 64-character hex txid'),
+  timestamp: z.string().datetime(),
+});
+export type WalletGraphEdge = z.infer<typeof walletGraphEdgeSchema>;
+
+export const walletGraphSchema = z.object({
+  nodes: z.array(walletGraphNodeSchema).min(1),
+  edges: z.array(walletGraphEdgeSchema),
+});
+export type WalletGraph = z.infer<typeof walletGraphSchema>;
+
 /**
  * The result of one screening run. `simulated` marks results produced by the
  * deterministic mock scorer, so the UI can say so rather than pretend.
@@ -67,5 +94,6 @@ export const walletScreeningSchema = z.object({
   wallet: walletListItemSchema,
   flags: z.array(z.string()),
   simulated: z.boolean(),
+  graph: walletGraphSchema,
 });
 export type WalletScreening = z.infer<typeof walletScreeningSchema>;
