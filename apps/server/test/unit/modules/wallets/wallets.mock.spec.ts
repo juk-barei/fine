@@ -4,6 +4,7 @@ import {
   mockGraph,
   screenAddress,
 } from '../../../../src/modules/wallets/wallets.mock.ts';
+import { OFAC_TRON_ADDRESSES } from '../../../../src/modules/wallets/ofac-seed.ts';
 
 const ADDRESS = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -120,5 +121,31 @@ describe('mockGraph', () => {
     }
 
     expect(directions).toEqual(new Set(['inbound', 'outbound']));
+  });
+});
+
+describe('screenAddress with the OFAC seed', () => {
+  it('carries the 52 documented addresses', () => {
+    expect(Object.keys(OFAC_TRON_ADDRESSES)).toHaveLength(52);
+  });
+
+  it('screens every seeded address as Tier 1, high and flagged', () => {
+    for (const address of Object.keys(OFAC_TRON_ADDRESSES)) {
+      const result = screenAddress(address);
+
+      expect(result.labelTier).toBe('tier_1');
+      expect(result.band).toBe('high');
+      expect(result.decisionStatus).toBe('flagged');
+      expect(result.confidence).toBe('high');
+      expect(result.score).toBeGreaterThanOrEqual(0.9);
+      expect(result.flags.some((flag) => flag.includes('OFAC'))).toBe(true);
+    }
+  });
+
+  it('leaves an unlisted address to the deterministic scorer', () => {
+    expect(OFAC_TRON_ADDRESSES[ADDRESS]).toBeUndefined();
+    expect(screenAddress(ADDRESS).flags).not.toContain(
+      'direct match on the OFAC SDN list (Tier 1)',
+    );
   });
 });

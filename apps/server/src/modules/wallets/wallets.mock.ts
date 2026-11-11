@@ -5,6 +5,7 @@ import type {
   WalletBand,
   WalletConfidence,
 } from '@repo/contracts';
+import { OFAC_TRON_ADDRESSES } from './ofac-seed.ts';
 
 /**
  * The deterministic mock screener standing in for the real Tron data path.
@@ -42,6 +43,22 @@ export function bandForScore(score: number): WalletBand {
 
 export function screenAddress(address: string): MockScreening {
   const digest = createHash('sha256').update(address).digest();
+
+  // List membership beats the hash: a sanctioned address must not hash its way
+  // into a lower tier.
+  if (OFAC_TRON_ADDRESSES[address] === true) {
+    return {
+      score: Math.round((0.9 + (digest[0] / 255) * 0.09) * 10_000) / 10_000,
+      band: 'high',
+      confidence: 'high',
+      labelTier: 'tier_1',
+      decisionStatus: 'flagged',
+      flags: [
+        'direct match on the OFAC SDN list (Tier 1)',
+        'OFAC action: XINBI GUARANTEE, 2026-09-09',
+      ],
+    };
+  }
 
   // 0.02..0.98 keeps the result inside the contract's 0..1 range without
   // pinning either end, so every band is reachable.
