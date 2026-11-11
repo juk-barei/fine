@@ -3,7 +3,6 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ScanSearch } from 'lucide-react'
 import { Button } from '@/components/atom'
 import { Sidebar, WalletList } from '@/components/organisms'
-import { LanguageToggle } from '@/components/molecules'
 import { GraphQLRequestError } from '@/lib/graphql'
 import { usePermissions } from '@/lib/permissions'
 import { useWallets } from '@/lib/wallets'
@@ -16,7 +15,7 @@ export const Route = createFileRoute('/_authenticated/wallets/')({
 
 function WalletsPage() {
   const [activeNav, setActiveNav] = useState('wallets')
-  const [language, setLanguage] = useState<SupportedLanguage>('en')
+  const language: SupportedLanguage = 'en'
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const { user, has } = usePermissions()
   const navigate = useNavigate()
@@ -51,15 +50,12 @@ function WalletsPage() {
               Welcome back{user?.name ? `, ${user.name}` : ''}.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {has('wallet:create') ? (
-              <Button onClick={() => navigate({ to: '/screen' })}>
-                <ScanSearch className="h-4 w-4" />
-                Screen wallet
-              </Button>
-            ) : null}
-            <LanguageToggle language={language} onLanguageChange={setLanguage} />
-          </div>
+          {has('wallet:create') ? (
+            <Button onClick={() => navigate({ to: '/screen' })}>
+              <ScanSearch className="h-4 w-4" />
+              Screen wallet
+            </Button>
+          ) : null}
         </div>
 
         <div className="mt-6">
