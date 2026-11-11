@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { ScanSearch } from 'lucide-react'
+import { Button } from '@/components/atom'
 import { Sidebar, WalletList } from '@/components/organisms'
 import { LanguageToggle } from '@/components/molecules'
 import { usePermissions } from '@/lib/permissions'
@@ -16,7 +18,8 @@ function Dashboard() {
   const [activeNav, setActiveNav] = useState('dashboard')
   const [language, setLanguage] = useState<SupportedLanguage>('en')
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const { user } = usePermissions()
+  const { user, has } = usePermissions()
+  const navigate = useNavigate()
   const wallets = useWallets()
   const errors = getTranslation(language).errors
   const failure = wallets.error
@@ -48,7 +51,15 @@ function Dashboard() {
               Welcome back{user?.name ? `, ${user.name}` : ''}.
             </p>
           </div>
-          <LanguageToggle language={language} onLanguageChange={setLanguage} />
+          <div className="flex items-center gap-2">
+            {has('wallet:create') ? (
+              <Button onClick={() => navigate({ to: '/screen' })}>
+                <ScanSearch className="h-4 w-4" />
+                Screen wallet
+              </Button>
+            ) : null}
+            <LanguageToggle language={language} onLanguageChange={setLanguage} />
+          </div>
         </div>
 
         <div className="mt-6">

@@ -16,3 +16,13 @@ type WalletPage {
 extend type Query {
   wallets(limit: Int, offset: Int, status: String): WalletPage!
 }
+
+type WalletScreening {
+  wallet: WalletListItem!
+  flags: [String!]!
+  simulated: Boolean!
+}
+
+extend type Mutation {
+  screenWallet(address: String!): WalletScreening!
+}

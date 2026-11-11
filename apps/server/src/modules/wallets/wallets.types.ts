@@ -14,3 +14,9 @@ export class WalletPage {
   nodes!: WalletListItem[];
   total!: number;
 }
+
+export class WalletScreening {
+  wallet!: WalletListItem;
+  flags!: string[];
+  simulated!: boolean;
+}

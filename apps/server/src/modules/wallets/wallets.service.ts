@@ -3,19 +3,22 @@ import { Effect } from 'effect';
 import { sql } from 'drizzle-orm';
 import { InjectDrizzle } from '@nest-native/drizzle';
 import {
+  screenWalletInputSchema,
   walletListInputSchema,
   type WalletListItem,
   type WalletPage,
+  type WalletScreening,
 } from '@repo/contracts';
 import { extractRows } from '../../common/db.ts';
 import type { AppDatabase } from '../../database.ts';
 import {
+  DbFailure,
   parse,
   tryDb,
   withResilience,
-  type DbFailure,
   type ValidationFailure,
 } from '../../common/effect/index.ts';
+import { screenAddress } from './wallets.mock.ts';
 
 type WalletError = ValidationFailure | DbFailure;
 
@@ -83,6 +86,59 @@ export class WalletsService {
         return {
           nodes: rows.map(toWalletListItem),
           total: Number(totals[0]?.total ?? 0),
+        };
+      }),
+      { idempotent: true },
+    );
+  }
+
+  /**
+   * Screen one wallet with the deterministic mock scorer and persist the
+   * result into the read model, so the list reflects the run.
+   */
+  screen(input: unknown): Effect.Effect<WalletScreening, WalletError> {
+    const self = this;
+    return withResilience(
+      Effect.gen(function* () {
+        const { address } = yield* parse(screenWalletInputSchema, input);
+        const mock = screenAddress(address);
+
+        const rows = extractRows<WalletRow>(
+          yield* tryDb(() =>
+            self.db.execute(sql`
+              insert into wallets
+                (address, score, band, confidence, label_tier, decision_status, last_analysed)
+              values
+                (${address}, ${mock.score}, ${mock.band}, ${mock.confidence},
+                 ${mock.labelTier}, ${mock.decisionStatus}, now())
+              on conflict (address) do update set
+                score = excluded.score,
+                band = excluded.band,
+                confidence = excluded.confidence,
+                label_tier = excluded.label_tier,
+                decision_status = excluded.decision_status,
+                last_analysed = excluded.last_analysed
+              returning address, score, band, confidence, label_tier,
+                        decision_status, last_analysed
+            `),
+          ),
+        );
+
+        const row = rows[0];
+        if (!row) {
+          return yield* Effect.fail(
+            new DbFailure({
+              sqlState: undefined,
+              detail: 'screening upsert returned no row',
+              cause: undefined,
+            }),
+          );
+        }
+
+        return {
+          wallet: toWalletListItem(row),
+          flags: mock.flags,
+          simulated: true,
         };
       }),
       { idempotent: true },

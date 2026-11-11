@@ -6,8 +6,8 @@ import {
   walletPageSchema,
 } from '../src/index.ts';
 
-const SCORED = '41' + '72'.repeat(19);
-const BARE = '41' + '0'.repeat(38);
+const SCORED = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
+const BARE = 'TYASr5UV6HEcXatwdFQfmLVUqQQQMUxHLS';
 
 describe('wallet list read model', () => {
   it('parses a scored wallet', () => {
@@ -42,7 +42,9 @@ describe('wallet list read model', () => {
     for (const address of [
       '0x4172d5f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0',
       '4172d5f0',
-      '4172D5F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0',
+      'tLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7',
+      // base58 excludes 0, O, I and l.
+      'T0a2f6VPqDgRE67v1736s7bJ8Ray5wYjU7',
     ]) {
       const result = walletListItemSchema.safeParse({
         address,

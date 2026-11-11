@@ -20,8 +20,18 @@ export type LabelTier = z.infer<typeof labelTierSchema>;
 export const decisionStatusSchema = z.enum(['open', 'flagged', 'cleared']);
 export type DecisionStatus = z.infer<typeof decisionStatusSchema>;
 
+/**
+ * A TRON base58 address: `T` plus 33 base58 characters. Structural only; the
+ * checksum is verified when a real chain client lands.
+ */
+export const tronAddressSchema = z
+  .string()
+  .trim()
+  .regex(/^T[1-9A-HJ-NP-Za-km-z]{33}$/, 'expected a TRON address (T…, 34 characters)');
+export type TronAddress = z.infer<typeof tronAddressSchema>;
+
 export const walletListItemSchema = z.object({
-  address: z.string().regex(/^[0-9a-f]{40}$/, 'expected 40 lowercase hex characters'),
+  address: tronAddressSchema,
   score: z.number().min(0).max(1).nullable(),
   band: walletBandSchema.nullable(),
   confidence: walletConfidenceSchema.nullable(),
@@ -43,3 +53,19 @@ export const walletPageSchema = z.object({
   total: z.number().int().min(0),
 });
 export type WalletPage = z.infer<typeof walletPageSchema>;
+
+export const screenWalletInputSchema = z.object({
+  address: tronAddressSchema,
+});
+export type ScreenWalletInput = z.infer<typeof screenWalletInputSchema>;
+
+/**
+ * The result of one screening run. `simulated` marks results produced by the
+ * deterministic mock scorer, so the UI can say so rather than pretend.
+ */
+export const walletScreeningSchema = z.object({
+  wallet: walletListItemSchema,
+  flags: z.array(z.string()),
+  simulated: z.boolean(),
+});
+export type WalletScreening = z.infer<typeof walletScreeningSchema>;

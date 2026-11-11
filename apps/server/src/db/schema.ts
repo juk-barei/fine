@@ -92,7 +92,7 @@ export const wallets = pgTable(
   },
   (t) => [
     index('wallets_score_idx').on(t.score),
-    check('wallets_address_hex', sql`${t.address} ~ '^[0-9a-f]{40}$'`),
+    check('wallets_address_tron', sql`${t.address} ~ '^T[1-9A-HJ-NP-Za-km-z]{33}$'`),
   ],
 );
 
