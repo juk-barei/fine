@@ -148,3 +148,54 @@ export function useWalletDetail(address: string | null) {
     },
   })
 }
+
+const PREVIEW_WALLET_QUERY = `
+  query PreviewWallet($address: String!) {
+    previewWallet(address: $address) {
+      simulated
+      flags
+      wallet {
+        address
+        score
+        band
+        confidence
+        labelTier
+        decisionStatus
+        lastAnalysed
+      }
+      graph {
+        nodes {
+          id
+          label
+          band
+          tier
+          subject
+          hops
+        }
+        edges {
+          from
+          to
+          amountUsdt
+          txHash
+          timestamp
+        }
+      }
+    }
+  }
+`
+
+/**
+ * The landing page's anonymous screening. Nothing is written: saving the run
+ * is the signed-in flow's job.
+ */
+export function usePreviewWallet() {
+  return useMutation({
+    mutationFn: async (address: string): Promise<WalletScreening> => {
+      const data = await graphqlRequest<{ previewWallet: unknown }>(
+        PREVIEW_WALLET_QUERY,
+        { address },
+      )
+      return walletScreeningSchema.parse(data.previewWallet)
+    },
+  })
+}

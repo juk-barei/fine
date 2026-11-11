@@ -128,3 +128,28 @@ describe('WalletsService.getByAddress', () => {
     expect(detail?.flags).toEqual([]);
   });
 });
+
+describe('WalletsService.preview', () => {
+  it('derives the result without touching the database', async () => {
+    const db = makeFakeDb();
+    const service = new WalletsService(db as never);
+
+    const result = await runEffect(service.preview({ address: ADDRESS }));
+
+    expect(db.execute).not.toHaveBeenCalled();
+    expect(result.wallet.address).toBe(ADDRESS);
+    expect(result.wallet.score).not.toBeNull();
+    expect(result.simulated).toBe(true);
+    expect(result.graph.nodes.filter((node) => node.subject)).toHaveLength(1);
+  });
+
+  it('rejects a malformed address without touching the database', async () => {
+    const db = makeFakeDb();
+    const service = new WalletsService(db as never);
+
+    const outcome = await runEffectResult(service.preview({ address: 'nope' }));
+
+    expect(outcome._tag).toBe('Failure');
+    expect(db.execute).not.toHaveBeenCalled();
+  });
+});

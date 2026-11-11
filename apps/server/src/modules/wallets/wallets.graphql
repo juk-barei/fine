@@ -16,6 +16,7 @@ type WalletPage {
 extend type Query {
   wallets(limit: Int, offset: Int, status: String): WalletPage!
   wallet(address: String!): WalletDetail
+  previewWallet(address: String!): WalletScreening!
 }
 
 type WalletGraphNode {

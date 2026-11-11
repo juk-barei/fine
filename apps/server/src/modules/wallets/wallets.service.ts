@@ -202,4 +202,34 @@ export class WalletsService {
       { idempotent: true },
     );
   }
+
+  /**
+   * The landing page's anonymous screening: same deterministic result, no row
+   * written. Persisting is the signed-in investigator's action.
+   */
+  preview(input: unknown): Effect.Effect<WalletScreening, WalletError> {
+    return Effect.gen(function* () {
+      const { address } = yield* parse(walletAddressInputSchema, input);
+      const mock = screenAddress(address);
+
+      return {
+        wallet: {
+          address,
+          score: mock.score,
+          band: mock.band,
+          confidence: mock.confidence,
+          labelTier: mock.labelTier,
+          decisionStatus: mock.decisionStatus,
+          lastAnalysed: new Date().toISOString(),
+        },
+        flags: mock.flags,
+        simulated: true,
+        graph: mockGraph({
+          address,
+          band: mock.band,
+          tier: mock.labelTier,
+        }),
+      };
+    });
+  }
 }

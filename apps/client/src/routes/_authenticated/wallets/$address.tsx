@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { tronAddressSchema, type WalletDetail } from '@repo/contracts'
 import { Button, CopyButton } from '@/components/atom'
 import { Sidebar, WalletGraphView } from '@/components/organisms'
+import { bandBadge, bandBar } from '@/components/organisms/wallets/band-styles'
 import { GraphQLRequestError } from '@/lib/graphql'
 import { useWalletDetail } from '@/lib/wallets'
 import type { SupportedLanguage } from '@/i18n'
@@ -11,19 +12,6 @@ import type { SupportedLanguage } from '@/i18n'
 export const Route = createFileRoute('/_authenticated/wallets/$address')({
   component: WalletDetailPage,
 })
-
-const bandBadge: Record<string, string> = {
-  high: 'border-destructive/30 bg-destructive/10 text-destructive',
-  moderate:
-    'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  low: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-}
-
-const bandBar: Record<string, string> = {
-  high: 'bg-destructive',
-  moderate: 'bg-amber-500',
-  low: 'bg-emerald-500',
-}
 
 function WalletDetailPage() {
   const { address } = Route.useParams()
