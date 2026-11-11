@@ -6,12 +6,6 @@ type BrandPanelProps = {
   language?: SupportedLanguage
 }
 
-const tiers = [
-  { tier: 'Tier 1', name: 'OFAC SDN', count: '54' },
-  { tier: 'Tier 2', name: 'Tether', count: '7,954' },
-  { tier: 'Tier 3', name: 'NBCTF', count: '581' },
-]
-
 function BrandPanel({ variant = "desktop", language = "en" }: BrandPanelProps) {
   if (variant === "mobile") {
     return (
@@ -61,22 +55,6 @@ function BrandContent({ language = "en" }: { language?: SupportedLanguage }) {
       <h2 className="max-w-sm text-2xl font-semibold leading-tight tracking-tight text-balance">
         {t.brandHeading}
       </h2>
-      <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        {t.brandDescription}
-      </p>
-
-      <dl className="mt-10 grid w-full max-w-sm grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border">
-        {tiers.map((entry) => (
-          <div key={entry.tier} className="bg-card px-3 py-3">
-            <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {entry.tier} · {entry.name}
-            </dt>
-            <dd className="mt-1 font-mono text-sm">{entry.count}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <p className="mt-4 text-xs text-muted-foreground">{t.brandTrust}</p>
     </>
   )
 }
