@@ -3,7 +3,7 @@ import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { tronAddressSchema, type WalletScreening } from '@repo/contracts'
 import { Button, Input } from '@/components/atom'
-import { WalletGraphView, bandBadge, bandBar } from '@/components/organisms'
+import { bandBadge, bandBar } from '@/components/organisms'
 import { GraphQLRequestError } from '@/lib/graphql'
 import { getSession } from '@/lib/auth'
 import { usePreviewWallet } from '@/lib/wallets'
@@ -177,7 +177,7 @@ function Landing() {
 }
 
 function PreviewResult({ result }: { result: WalletScreening }) {
-  const { wallet, flags, graph } = result
+  const { wallet, flags } = result
   const band = wallet.band ?? 'low'
   const score = wallet.score ?? 0
 
@@ -226,15 +226,12 @@ function PreviewResult({ result }: { result: WalletScreening }) {
         </div>
 
         <div className="mt-6 border-t pt-6">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Fund flow
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              {graph.nodes.filter((node) => !node.subject).length} counterparties · 1 hop
-            </p>
-          </div>
-          <WalletGraphView graph={graph} />
+          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+            Fund flow
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Sign in to trace this wallet across hops.
+          </p>
         </div>
 
         <div className="mt-6 border-t pt-6">

@@ -1,15 +1,103 @@
-import { ArrowRight } from 'lucide-react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { ArrowRight, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  BAND_STYLES,
+  ForensicFlowGraph,
+  buildForensicGraphForAddress,
+} from '@/components/ForensicFlowGraph';
 
 const steps = [
-  { n: '01', title: 'Screen', body: 'Paste an address. We load its neighbourhood.' },
-  { n: '02', title: 'Trace', body: 'Five hops. Cycles once. Truncation shown.' },
-  { n: '03', title: 'Export', body: 'One PDF: score, evidence, limits.' },
+  {
+    n: '01',
+    title: 'Screen',
+    body: 'Paste an address. We load its neighbourhood.',
+  },
+  {
+    n: '02',
+    title: 'Trace',
+    body: 'Five hops. Cycles once. Truncation shown.',
+  },
+  {
+    n: '03',
+    title: 'Export',
+    body: 'One PDF: score, evidence, limits.',
+  },
 ];
 
+const DEMO_SEEDS = [
+  {
+    label: 'Huione Peel Seed',
+    address: 'TLyqzVGLV1DnUQGeoiw61tFhWwvV4A2h9K',
+  },
+  {
+    label: 'OFAC SDN Designated',
+    address: 'Tbw8871rrf5RUY5KY4PFtXueNVh6p5sjGN',
+  },
+  {
+    label: 'OTC Relay Desk',
+    address: 'T2oFe6BTnU7QUyyLgqbYAiDszeqTGaBULm',
+  },
+];
+
+const TRON_REGEX = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+
 export default function App() {
+  const [address, setAddress] = useState(DEMO_SEEDS[0].address);
+  const [screenedAddress, setScreenedAddress] = useState<string>(
+    DEMO_SEEDS[0].address
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const graph = useMemo(
+    () => buildForensicGraphForAddress(screenedAddress),
+    [screenedAddress]
+  );
+  const subject = graph.nodes.find((node) => node.subject) ?? graph.nodes[0];
+  const score = subject.score / 100;
+  const bandStyle = BAND_STYLES[subject.band];
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = address.trim();
+    if (!TRON_REGEX.test(trimmed)) {
+      setError('That is not a TRON address (T…, 34 base58 characters).');
+      return;
+    }
+    setError(null);
+    setScreenedAddress(trimmed);
+  };
+
+  const handleExportDossier = () => {
+    const payload = {
+      simulated: true,
+      screenedAddress,
+      evaluatedAt: new Date().toISOString(),
+      score: Number(score.toFixed(2)),
+      band: subject.band,
+      hopLevels: Math.max(...graph.nodes.map((node) => node.hop)) + 1,
+      nodes: graph.nodes,
+      edges: graph.edges,
+      limitations: [
+        'Synthetic fixture: entities, transfers and signatures are generated, not chain data.',
+        'Score is derived from the address hash, not a model.',
+        'No coverage counter or truncation analysis is computed in this prototype.',
+      ],
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fine-synthetic-dossier-${screenedAddress.slice(0, 8)}.json`;
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-border/70">
@@ -18,16 +106,23 @@ export default function App() {
             <span className="size-2 rounded-full bg-foreground" />
             <span className="text-sm font-medium tracking-tight">fine</span>
           </div>
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+          >
             Sign in
           </Button>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 pb-16">
-        <section className="grid gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-20">
+        <section className="grid gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-16">
           <div>
-            <Badge variant="outline" className="border-border/80 font-normal text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="border-border/80 font-normal text-muted-foreground"
+            >
               Self-hosted · TRC-20
             </Badge>
             <h1 className="mt-6 text-5xl font-semibold tracking-tight text-balance sm:text-6xl">
@@ -37,17 +132,49 @@ export default function App() {
               Screen a wallet. Follow five hops. Export the dossier.
             </p>
 
-            <div className="mt-9 flex max-w-md items-center gap-2 rounded-xl border border-border bg-card/40 p-1.5 pl-4 focus-within:ring-[3px] focus-within:ring-ring/40">
-              <Input
-                className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-                placeholder="Paste a Tron address (T…)"
-                aria-label="Tron address"
-              />
-              <Button className="shrink-0">
-                Screen
-                <ArrowRight />
-              </Button>
-            </div>
+            <form onSubmit={handleSubmit} className="mt-9 max-w-md" noValidate>
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card/40 p-1.5 pl-4 focus-within:ring-[3px] focus-within:ring-ring/40">
+                <Input
+                  className="h-9 border-0 bg-transparent px-0 font-mono text-xs shadow-none focus-visible:ring-0"
+                  placeholder="Paste a Tron address (T…)"
+                  aria-label="Tron address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  autoComplete="off"
+                />
+                <Button type="submit" className="shrink-0 cursor-pointer">
+                  Screen
+                  <ArrowRight />
+                </Button>
+              </div>
+              {error ? (
+                <p role="alert" className="mt-2 text-xs text-destructive">
+                  {error}
+                </p>
+              ) : (
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>Presets:</span>
+                  {DEMO_SEEDS.map((seed) => (
+                    <button
+                      key={seed.address}
+                      type="button"
+                      onClick={() => {
+                        setAddress(seed.address);
+                        setScreenedAddress(seed.address);
+                        setError(null);
+                      }}
+                      className={`cursor-pointer rounded-md border px-2 py-0.5 text-[11px] transition ${
+                        screenedAddress === seed.address
+                          ? 'border-foreground/40 bg-foreground/10 text-foreground'
+                          : 'border-border/70 bg-card/30 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {seed.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </form>
 
             <p className="mt-4 text-xs text-muted-foreground">
               54 sanctioned · 7,954 frozen · 581 seized
@@ -76,7 +203,12 @@ export default function App() {
                 <circle cx="110" cy="80" r="7" />
                 <circle cx="290" cy="245" r="7" />
               </g>
-              <circle cx="330" cy="110" r="20" className="fill-none stroke-white/25" />
+              <circle
+                cx="330"
+                cy="110"
+                r="20"
+                className="fill-none stroke-white/25"
+              />
               <circle cx="330" cy="110" r="10" className="fill-foreground" />
               <text
                 x="330"
@@ -90,10 +222,80 @@ export default function App() {
           </div>
         </section>
 
-        <section className="grid gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70 sm:grid-cols-3">
+        {/* Screening Result & Multi-Hop Interactive Graph Section */}
+        <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/40">
+          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border/70 px-6 py-4">
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                Screening preview · synthetic graph
+              </p>
+              <p className="mt-1 truncate font-mono text-sm">
+                {screenedAddress}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Synthetic fixture
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportDossier}
+                className="h-7 cursor-pointer gap-1.5 text-xs"
+              >
+                <Download className="size-3.5" />
+                Export dossier
+              </Button>
+            </div>
+          </header>
+
+          <div className="px-6 py-6">
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Risk score</p>
+                <p
+                  className={`mt-1 text-5xl font-semibold tabular-nums tracking-tight ${bandStyle.text}`}
+                >
+                  {score.toFixed(2)}
+                </p>
+              </div>
+              <div className="min-w-48 flex-1">
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full ${bandStyle.bar}`}
+                    style={{ width: `${Math.round(score * 100)}%` }}
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${bandStyle.chip}`}
+                  >
+                    {subject.band} risk
+                  </span>
+                  <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                    {subject.badge ?? 'Subject'} · synthetic
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 border-t border-border/70 pt-6">
+              <ForensicFlowGraph
+                subjectAddress={screenedAddress}
+                nodes={graph.nodes}
+                edges={graph.edges}
+                stubs={graph.stubs}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70 sm:grid-cols-3">
           {steps.map((s) => (
             <div key={s.n} className="bg-background p-6">
-              <span className="font-mono text-[11px] text-muted-foreground">{s.n}</span>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {s.n}
+              </span>
               <h2 className="mt-3 text-sm font-medium">{s.title}</h2>
               <p className="mt-1.5 text-sm text-muted-foreground">{s.body}</p>
             </div>
