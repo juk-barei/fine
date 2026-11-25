@@ -144,6 +144,15 @@ export const en = {
       simulated: 'Simulated data',
       simulatedHint: 'Synthetic fixture, not chain evidence.',
     },
+    controls: {
+      label: 'Trace controls',
+      depth: 'Depth',
+      hop: 'hop',
+      hops: 'hops',
+      minimumValue: 'Minimum transfer',
+      minimumValueHint: 'Transfers below this value, in USDT, are left out.',
+      minimumValueInvalid: 'Enter 0 USDT or more.',
+    },
   },
   unsavedChanges: {
     title: 'Discard Unsaved Changes?',

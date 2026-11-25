@@ -263,6 +263,93 @@ describe('WalletTraceGraph', () => {
     expect(mockedHook).toHaveBeenCalledWith(SUBJECT, 5, 0);
   });
 
+  it('offers only the depths the contract accepts', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const depth = screen.getByLabelText('Depth') as HTMLSelectElement;
+
+    expect([...depth.options].map((option) => option.value)).toEqual([
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+    ]);
+  });
+
+  it('re-queries the graph with the chosen depth and minimum value', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.change(screen.getByLabelText('Depth'), {
+      target: { value: '3' },
+    });
+
+    expect(mockedHook).toHaveBeenLastCalledWith(SUBJECT, 3, 0);
+
+    const minimum = screen.getByLabelText('Minimum transfer');
+    fireEvent.change(minimum, { target: { value: '250' } });
+    fireEvent.blur(minimum);
+
+    expect(mockedHook).toHaveBeenLastCalledWith(SUBJECT, 3, 250);
+  });
+
+  it('refuses a negative minimum value and says why', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const minimum = screen.getByLabelText('Minimum transfer');
+    fireEvent.change(minimum, { target: { value: '-50' } });
+    fireEvent.blur(minimum);
+
+    expect(
+      mockedHook.mock.calls.some(([, , value]) => value === -50),
+    ).toBe(false);
+    expect(screen.getByRole('alert').textContent).toContain('0 USDT or more');
+  });
+
+  it('keeps the selected node when it survives the re-query', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(HOP_TWO) }));
+    fireEvent.change(screen.getByLabelText('Depth'), {
+      target: { value: '4' },
+    });
+
+    const inspector = screen.getByRole('region', {
+      name: 'Selection details',
+    });
+
+    expect(mockedHook).toHaveBeenLastCalledWith(SUBJECT, 4, 0);
+    expect(within(inspector).getByText(HOP_TWO)).toBeTruthy();
+  });
+
+  it('falls back to the subject when the selected node leaves the graph', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(HOP_TWO) }));
+
+    mockedHook.mockReturnValue({
+      data: {
+        ...graph,
+        nodes: nodes.filter((candidate) => candidate.address !== HOP_TWO),
+        edges: edges.filter((edge) => edge.hop < 2),
+        disclosure: { ...graph.disclosure, depthReached: 1 },
+      },
+      isLoading: false,
+      error: null,
+    } as never);
+
+    fireEvent.change(screen.getByLabelText('Depth'), {
+      target: { value: '1' },
+    });
+
+    const inspector = screen.getByRole('region', {
+      name: 'Selection details',
+    });
+
+    expect(within(inspector).getByText(SUBJECT)).toBeTruthy();
+    expect(within(inspector).queryByText(HOP_TWO)).toBeNull();
+  });
+
   it('shows a node address and hop when a node is selected', () => {
     render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
 
@@ -312,6 +399,11 @@ describe('WalletTraceGraph', () => {
     expect(
       screen.getByText('No traced neighbourhood was loaded for this wallet.'),
     ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByLabelText('Depth')).toBeTruthy();
+    expect(
+      screen.queryByRole('region', { name: 'Selection details' }),
+    ).toBeNull();
   });
 
   it('renders the disclosure the payload reported, not the query it asked for', () => {
@@ -352,6 +444,10 @@ describe('WalletTraceGraph', () => {
     expect(screen.getByRole('alert').textContent).toContain(
       'Could not load the trace graph.',
     );
+    expect(
+      screen.queryByText('No traced neighbourhood was loaded for this wallet.'),
+    ).toBeNull();
+    expect(screen.getByLabelText('Depth')).toBeTruthy();
   });
 });
 
