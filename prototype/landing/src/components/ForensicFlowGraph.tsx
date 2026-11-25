@@ -104,6 +104,36 @@ function deterministicTxHash(seed: string, edgeId: string): string {
   return out;
 }
 
+function deterministicScore(seed: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h) % 101;
+}
+
+export const BAND_STYLES: Record<
+  RiskBand,
+  { text: string; bar: string; chip: string }
+> = {
+  high: {
+    text: 'text-red-500',
+    bar: 'bg-red-500',
+    chip: 'border-red-500/30 bg-red-500/10 text-red-400',
+  },
+  moderate: {
+    text: 'text-amber-400',
+    bar: 'bg-amber-400',
+    chip: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
+  },
+  low: {
+    text: 'text-emerald-400',
+    bar: 'bg-emerald-400',
+    chip: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+  },
+};
+
 export function buildForensicGraphForAddress(subjectAddress: string): {
   nodes: ForensicFlowNode[];
   edges: ForensicFlowEdge[];
@@ -113,6 +143,10 @@ export function buildForensicGraphForAddress(subjectAddress: string): {
     subjectAddress.trim().length === 34
       ? subjectAddress.trim()
       : 'TLyqzVGLV1DnUQGeoiw61tFhWwvV4A2h9K';
+
+  const subjectScore = deterministicScore(cleanSubject);
+  const subjectBand: RiskBand =
+    subjectScore >= 70 ? 'high' : subjectScore >= 40 ? 'moderate' : 'low';
 
   const nodes: ForensicFlowNode[] = [
     {
@@ -225,8 +259,8 @@ export function buildForensicGraphForAddress(subjectAddress: string): {
       sizeTier: 'lg',
       address: cleanSubject,
       hop: 0,
-      score: 88,
-      band: 'high',
+      score: subjectScore,
+      band: subjectBand,
       subject: true,
       volumeUsdt: 1_410_000,
       breakdown: {
@@ -506,16 +540,6 @@ export function buildForensicGraphForAddress(subjectAddress: string): {
   return { nodes, edges, stubs };
 }
 
-export const DEFAULT_FLOW_NODES = buildForensicGraphForAddress(
-  'TLyqzVGLV1DnUQGeoiw61tFhWwvV4A2h9K'
-).nodes;
-export const DEFAULT_FLOW_EDGES = buildForensicGraphForAddress(
-  'TLyqzVGLV1DnUQGeoiw61tFhWwvV4A2h9K'
-).edges;
-export const DEFAULT_FLOW_STUBS = buildForensicGraphForAddress(
-  'TLyqzVGLV1DnUQGeoiw61tFhWwvV4A2h9K'
-).stubs;
-
 function pentagonPoints(cx: number, cy: number, r: number): string {
   return Array.from({ length: 5 }, (_, i) => {
     const angle = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
@@ -715,8 +739,6 @@ export interface ForensicFlowGraphProps {
   nodes?: ForensicFlowNode[];
   edges?: ForensicFlowEdge[];
   stubs?: ForensicFlowStub[];
-  selectedNodeId?: string;
-  onSelectNode?: (node: ForensicFlowNode) => void;
   className?: string;
   showInspector?: boolean;
 }
@@ -730,8 +752,6 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
   nodes: customNodes,
   edges: customEdges,
   stubs: customStubs,
-  selectedNodeId,
-  onSelectNode,
   className = '',
   showInspector = true,
 }) => {
@@ -761,7 +781,8 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
   const [filterMode, setFilterMode] = useState<'all' | 'critical'>('all');
   const [zoom, setZoom] = useState<number>(1);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const copyTimerRef = useRef<number | null>(null);
   const [openCards, setOpenCards] = useState<Record<number, boolean>>({
     0: false,
     1: false,
@@ -782,7 +803,7 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
 
   const [selection, setSelection] = useState<GraphSelection>({
     kind: 'node',
-    id: selectedNodeId ?? 'suspect',
+    id: 'suspect',
   });
 
   const getPos = (node: ForensicFlowNode) => {
@@ -798,19 +819,14 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
     [baseNodes]
   );
 
-  const activeSelection: GraphSelection =
-    selectedNodeId !== undefined
-      ? { kind: 'node', id: selectedNodeId }
-      : selection;
-
   const selectedNode =
-    activeSelection.kind === 'node'
-      ? nodeMap.get(activeSelection.id) ?? nodeMap.get('suspect') ?? baseNodes[0]
+    selection.kind === 'node'
+      ? nodeMap.get(selection.id) ?? nodeMap.get('suspect') ?? baseNodes[0]
       : null;
 
   const selectedEdge =
-    activeSelection.kind === 'edge'
-      ? edges.find((e) => e.id === activeSelection.id) ?? null
+    selection.kind === 'edge'
+      ? edges.find((e) => e.id === selection.id) ?? null
       : null;
 
   const clientToSvgCoords = (clientX: number, clientY: number) => {
@@ -868,7 +884,6 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
     dragStartRef.current = null;
     if (!drag || !drag.moved) {
       setSelection({ kind: 'node', id: node.id });
-      onSelectNode?.(node);
     }
   };
 
@@ -879,9 +894,18 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
   };
 
   const handleCopyAddress = (addr: string) => {
-    navigator.clipboard?.writeText(addr).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1400);
+    if (!navigator.clipboard) return;
+    navigator.clipboard
+      .writeText(addr)
+      .then(() => {
+        setCopiedAddress(addr);
+        if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = window.setTimeout(
+          () => setCopiedAddress(null),
+          1400
+        );
+      })
+      .catch(() => {});
   };
 
   const criticalNodeIds = useMemo(() => {
@@ -905,6 +929,9 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
     return s;
   }, [hoveredNodeId, edges]);
 
+  const hopLevels = Math.max(...baseNodes.map((n) => n.hop)) + 1;
+  const subjectVolume = baseNodes.find((n) => n.subject)?.volumeUsdt ?? 0;
+
   return (
     <div className={`flex flex-col gap-3 ${className}`}>
       {/* Interactive Monochrome Graph Toolbar */}
@@ -919,7 +946,7 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
                 : 'border-border bg-card/40 text-muted-foreground hover:text-foreground'
             }`}
           >
-            All hops (11 nodes)
+            All hops ({baseNodes.length} nodes)
           </button>
           <button
             type="button"
@@ -997,7 +1024,7 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
           <svg
             ref={svgRef}
             viewBox="0 0 1000 460"
-            role="img"
+            role="group"
             aria-label="Interactive multi-hop forensic fund-flow graph"
             onPointerMove={handlePointerMoveSvg}
             onPointerUp={() => {
@@ -1110,8 +1137,7 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
 
               const isHighlighted = edge.variant === 'highlighted';
               const isEdgeSelected =
-                activeSelection.kind === 'edge' &&
-                activeSelection.id === edge.id;
+                selection.kind === 'edge' && selection.id === edge.id;
 
               const dimmedByFilter =
                 filterMode === 'critical' && !isHighlighted;
@@ -1134,7 +1160,16 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
                 <g
                   key={edge.id}
                   onClick={() => setSelection({ kind: 'edge', id: edge.id })}
-                  className="cursor-pointer transition-opacity"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Transfer ${edge.amountUsdt.toLocaleString()} USDT, hop ${edge.hop}, ${edge.from} to ${edge.to}`}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelection({ kind: 'edge', id: edge.id });
+                    }
+                  }}
+                  className="cursor-pointer transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70"
                   opacity={dimmedByFilter || dimmedByHover ? 0.22 : 1}
                 >
                   <title>
@@ -1196,8 +1231,7 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
             {baseNodes.map((node) => {
               const pos = getPos(node);
               const isSelected =
-                activeSelection.kind === 'node' &&
-                activeSelection.id === node.id;
+                selection.kind === 'node' && selection.id === node.id;
               const isLarge = node.sizeTier === 'lg';
               const isSmall = node.sizeTier === 'sm';
 
@@ -1229,9 +1263,18 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
                   onPointerLeave={() =>
                     setHoveredNodeId((prev) => (prev === node.id ? null : prev))
                   }
-                  className={
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${node.title ?? node.badge ?? 'Wallet'}, ${node.address}, hop ${node.hop}`}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelection({ kind: 'node', id: node.id });
+                    }
+                  }}
+                  className={`${
                     draggingId === node.id ? 'cursor-grabbing' : 'cursor-grab'
-                  }
+                  } focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70`}
                   opacity={dimmedByFilter || dimmedByHover ? 0.28 : 1}
                 >
                   {/* Active selection ring in pure white */}
@@ -1330,9 +1373,14 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
               <span className="h-0.5 w-4 rounded bg-zinc-500" />
               Secondary / multi-hop exposure
             </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-4 border-t border-dashed border-zinc-600" />
+              Unexpanded continuation
+            </span>
           </div>
           <span className="font-mono text-[10px]">
-            5 hops · 11 entities · $1.41M USDT traced
+            {hopLevels} hop levels · {baseNodes.length} entities · $
+            {(subjectVolume / 1_000_000).toFixed(2)}M USDT traced · synthetic
           </span>
         </div>
       </div>
@@ -1369,7 +1417,7 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
                       onClick={() => handleCopyAddress(selectedNode.address)}
                       className="inline-flex cursor-pointer items-center gap-1 rounded border border-border/70 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
                     >
-                      {copied ? (
+                      {copiedAddress === selectedNode.address ? (
                         <>
                           <Check className="size-3 text-foreground" />
                           Copied
@@ -1397,7 +1445,9 @@ export const ForensicFlowGraph: React.FC<ForensicFlowGraphProps> = ({
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                       Risk Score
                     </p>
-                    <p className="font-mono text-xl font-semibold tabular-nums text-red-500">
+                    <p
+                      className={`font-mono text-xl font-semibold tabular-nums ${BAND_STYLES[selectedNode.band].text}`}
+                    >
                       {selectedNode.score}/100
                     </p>
                   </div>

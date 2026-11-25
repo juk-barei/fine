@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  BAND_STYLES,
   ForensicFlowGraph,
   buildForensicGraphForAddress,
 } from '@/components/ForensicFlowGraph';
@@ -30,20 +31,14 @@ const DEMO_SEEDS = [
   {
     label: 'Huione Peel Seed',
     address: 'TLyqzVGLV1DnUQGeoiw61tFhWwvV4A2h9K',
-    score: 0.88,
-    band: 'high' as const,
   },
   {
     label: 'OFAC SDN Designated',
-    address: 'TXm9SanctOfacDesigCluster339Ab4891',
-    score: 0.96,
-    band: 'high' as const,
+    address: 'Tbw8871rrf5RUY5KY4PFtXueNVh6p5sjGN',
   },
   {
     label: 'OTC Relay Desk',
-    address: 'TW4kDexPeelChainPassThru91xL881065',
-    score: 0.64,
-    band: 'moderate' as const,
+    address: 'T2oFe6BTnU7QUyyLgqbYAiDszeqTGaBULm',
   },
 ];
 
@@ -56,8 +51,13 @@ export default function App() {
   );
   const [error, setError] = useState<string | null>(null);
 
-  const activePreset =
-    DEMO_SEEDS.find((s) => s.address === screenedAddress) ?? DEMO_SEEDS[0];
+  const graph = useMemo(
+    () => buildForensicGraphForAddress(screenedAddress),
+    [screenedAddress]
+  );
+  const subject = graph.nodes.find((node) => node.subject) ?? graph.nodes[0];
+  const score = subject.score / 100;
+  const bandStyle = BAND_STYLES[subject.band];
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,14 +71,20 @@ export default function App() {
   };
 
   const handleExportDossier = () => {
-    const graphData = buildForensicGraphForAddress(screenedAddress);
     const payload = {
+      simulated: true,
       screenedAddress,
       evaluatedAt: new Date().toISOString(),
-      score: activePreset.score,
-      band: activePreset.band,
-      nodes: graphData.nodes,
-      edges: graphData.edges,
+      score: Number(score.toFixed(2)),
+      band: subject.band,
+      hopLevels: Math.max(...graph.nodes.map((node) => node.hop)) + 1,
+      nodes: graph.nodes,
+      edges: graph.edges,
+      limitations: [
+        'Synthetic fixture: entities, transfers and signatures are generated, not chain data.',
+        'Score is derived from the address hash, not a model.',
+        'No coverage counter or truncation analysis is computed in this prototype.',
+      ],
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: 'application/json',
@@ -86,8 +92,10 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fine-dossier-${screenedAddress.slice(0, 8)}.json`;
+    a.download = `fine-synthetic-dossier-${screenedAddress.slice(0, 8)}.json`;
     a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -219,7 +227,7 @@ export default function App() {
           <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border/70 px-6 py-4">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Screening preview · 5-hop forensic graph
+                Screening preview · synthetic graph
               </p>
               <p className="mt-1 truncate font-mono text-sm">
                 {screenedAddress}
@@ -227,7 +235,7 @@ export default function App() {
             </div>
             <div className="flex items-center gap-2">
               <span className="shrink-0 rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                Deterministic Rule Engine
+                Synthetic fixture
               </span>
               <Button
                 variant="outline"
@@ -245,30 +253,39 @@ export default function App() {
             <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
               <div>
                 <p className="text-xs text-muted-foreground">Risk score</p>
-                <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight text-red-500">
-                  {activePreset.score.toFixed(2)}
+                <p
+                  className={`mt-1 text-5xl font-semibold tabular-nums tracking-tight ${bandStyle.text}`}
+                >
+                  {score.toFixed(2)}
                 </p>
               </div>
               <div className="min-w-48 flex-1">
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-red-500"
-                    style={{ width: `${Math.round(activePreset.score * 100)}%` }}
+                    className={`h-full rounded-full ${bandStyle.bar}`}
+                    style={{ width: `${Math.round(score * 100)}%` }}
                   />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 text-xs font-medium capitalize text-red-400">
-                    {activePreset.band} risk
+                  <span
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${bandStyle.chip}`}
+                  >
+                    {subject.band} risk
                   </span>
                   <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                    Flagged · Tier 1 exposure
+                    {subject.badge ?? 'Subject'} · synthetic
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="mt-6 border-t border-border/70 pt-6">
-              <ForensicFlowGraph subjectAddress={screenedAddress} />
+              <ForensicFlowGraph
+                subjectAddress={screenedAddress}
+                nodes={graph.nodes}
+                edges={graph.edges}
+                stubs={graph.stubs}
+              />
             </div>
           </div>
         </section>
