@@ -1,4 +1,13 @@
-import type { WalletBand, WalletConfidence, DecisionStatus, LabelTier } from '@repo/contracts';
+import type {
+  CoverageStatus,
+  DecisionStatus,
+  IntermediaryClass,
+  LabelTier,
+  TraceEdgeDirection,
+  TraceNodeKind,
+  WalletBand,
+  WalletConfidence,
+} from '@repo/contracts';
 
 export class WalletListItem {
   address!: string;
@@ -15,38 +24,73 @@ export class WalletPage {
   total!: number;
 }
 
-export class WalletGraphNode {
-  id!: string;
-  label!: string;
-  band!: WalletBand;
+export class TraceLabel {
   tier!: LabelTier;
-  subject!: boolean;
-  hops!: number;
+  source!: string;
+  listedAt?: string | null;
 }
 
-export class WalletGraphEdge {
+export class TraceRule {
+  code!: string;
+  triggered!: boolean;
+  summary!: string;
+}
+
+export class TraceNode {
+  address!: string;
+  hop!: number;
+  kind!: TraceNodeKind;
+  title?: string | null;
+  badge?: string | null;
+  band?: WalletBand | null;
+  pLaundering?: number | null;
+  confidence?: WalletConfidence | null;
+  volumeUsdt!: number;
+  intermediary?: IntermediaryClass | null;
+  labels!: TraceLabel[];
+  rules!: TraceRule[];
+  subject!: boolean;
+}
+
+export class TraceEdge {
+  id!: string;
   from!: string;
   to!: string;
   amountUsdt!: number;
   txHash!: string;
   timestamp!: string;
+  hop!: number;
+  direction!: TraceEdgeDirection;
 }
 
-export class WalletGraph {
-  nodes!: WalletGraphNode[];
-  edges!: WalletGraphEdge[];
+export class TraceDisclosure {
+  depthRequested!: number;
+  depthReached!: number;
+  minValueUsdt!: number;
+  nodesReturned!: number;
+  nodeCap!: number;
+  truncated!: boolean;
+  coverage!: CoverageStatus;
+  loadedTransfers!: number;
+  reportedTransfers!: number;
+  reason?: string | null;
+}
+
+export class WalletTraceGraph {
+  simulated!: boolean;
+  nodes!: TraceNode[];
+  edges!: TraceEdge[];
+  disclosure!: TraceDisclosure;
 }
 
 export class WalletDetail {
   wallet!: WalletListItem;
   flags!: string[];
   simulated!: boolean;
-  graph?: WalletGraph | null;
 }
 
 export class WalletScreening {
   wallet!: WalletListItem;
   flags!: string[];
   simulated!: boolean;
-  graph!: WalletGraph;
 }

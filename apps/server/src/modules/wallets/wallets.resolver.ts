@@ -1,9 +1,14 @@
-import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Float, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Inject } from '@nestjs/common';
 import { OptionalAuth, UserHasPermission } from '@thallesp/nestjs-better-auth';
 import { runGraphQL } from '../../common/effect/run.ts';
 import { WalletsService } from './wallets.service.ts';
-import { WalletDetail, WalletPage, WalletScreening } from './wallets.types.ts';
+import {
+  WalletDetail,
+  WalletPage,
+  WalletScreening,
+  WalletTraceGraph,
+} from './wallets.types.ts';
 
 @Resolver()
 export class WalletsResolver {
@@ -38,6 +43,20 @@ export class WalletsResolver {
     @Args('address', { type: () => String }) address: string,
   ): Promise<WalletScreening> {
     return runGraphQL(this.walletsService.preview({ address }));
+  }
+
+  @UserHasPermission({ permission: { trace: ['read'] } })
+  @Query(() => WalletTraceGraph)
+  async walletGraph(
+    @Args('address', { type: () => String }) address: string,
+    @Args('depth', { type: () => Int, nullable: true, defaultValue: 5 })
+    depth: number,
+    @Args('minValueUsdt', { type: () => Float, nullable: true, defaultValue: 0 })
+    minValueUsdt: number,
+  ): Promise<WalletTraceGraph> {
+    return runGraphQL(
+      this.walletsService.graph({ address, depth, minValueUsdt }),
+    );
   }
 
   @UserHasPermission({ permission: { wallet: ['create'] } })

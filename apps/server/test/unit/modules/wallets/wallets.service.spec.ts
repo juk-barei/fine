@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { walletTraceGraphSchema } from '@repo/contracts';
 import { WalletsService } from '../../../../src/modules/wallets/wallets.service.ts';
 import { DbFailure } from '../../../../src/common/effect/failures.ts';
 import {
@@ -33,8 +34,7 @@ describe('WalletsService.screen', () => {
     expect(db.execute).toHaveBeenCalledTimes(1);
     expect(result.simulated).toBe(true);
     expect(result.flags.length).toBeGreaterThan(0);
-    expect(result.graph.nodes.filter((node) => node.subject)).toHaveLength(1);
-    expect(result.graph.edges).toHaveLength(result.graph.nodes.length - 1);
+    expect('graph' in result).toBe(false);
     expect(result.wallet).toEqual({
       address: ADDRESS,
       score: 0.8213,
@@ -81,7 +81,7 @@ describe('WalletsService.getByAddress', () => {
     expect(detail).not.toBeNull();
     expect(detail?.wallet).toMatchObject({ address: ADDRESS, score: 0.8213 });
     expect(detail?.flags.length).toBeGreaterThan(0);
-    expect(detail?.graph?.nodes.filter((node) => node.subject)).toHaveLength(1);
+    expect(detail !== null && 'graph' in detail).toBe(false);
     expect(detail?.simulated).toBe(true);
   });
 
@@ -124,7 +124,6 @@ describe('WalletsService.getByAddress', () => {
     const detail = await runEffect(service.getByAddress({ address: ADDRESS }));
 
     expect(detail?.wallet.score).toBeNull();
-    expect(detail?.graph).toBeNull();
     expect(detail?.flags).toEqual([]);
   });
 });
@@ -140,7 +139,7 @@ describe('WalletsService.preview', () => {
     expect(result.wallet.address).toBe(ADDRESS);
     expect(result.wallet.score).not.toBeNull();
     expect(result.simulated).toBe(true);
-    expect(result.graph.nodes.filter((node) => node.subject)).toHaveLength(1);
+    expect('graph' in result).toBe(false);
   });
 
   it('rejects a malformed address without touching the database', async () => {
@@ -150,6 +149,78 @@ describe('WalletsService.preview', () => {
     const outcome = await runEffectResult(service.preview({ address: 'nope' }));
 
     expect(outcome._tag).toBe('Failure');
+    expect(db.execute).not.toHaveBeenCalled();
+  });
+});
+
+describe('WalletsService.graph', () => {
+  it('builds the trace graph without touching the database', async () => {
+    const db = makeFakeDb();
+    const service = new WalletsService(db as never);
+
+    const graph = await runEffect(
+      service.graph({ address: ADDRESS, depth: 3, minValueUsdt: 0 }),
+    );
+
+    expect(db.execute).not.toHaveBeenCalled();
+    expect(walletTraceGraphSchema.safeParse(graph).success).toBe(true);
+    expect(graph.nodes.filter((node) => node.subject)).toHaveLength(1);
+    expect(graph.disclosure).toMatchObject({
+      depthRequested: 3,
+      nodeCap: 500,
+      truncated: false,
+      coverage: 'complete',
+    });
+  });
+
+  it('passes depth and the minimum transfer value to the builder', async () => {
+    const db = makeFakeDb();
+    const service = new WalletsService(db as never);
+
+    const graph = await runEffect(
+      service.graph({ address: ADDRESS, depth: 2, minValueUsdt: 5_000 }),
+    );
+
+    expect(graph.disclosure.depthRequested).toBe(2);
+    expect(graph.disclosure.minValueUsdt).toBe(5_000);
+    expect(Math.max(...graph.nodes.map((node) => node.hop))).toBeLessThanOrEqual(2);
+    expect(graph.edges.every((edge) => edge.amountUsdt >= 5_000)).toBe(true);
+  });
+
+  it('defaults to depth 5 and a minimum value of 0', async () => {
+    const service = new WalletsService(makeFakeDb() as never);
+
+    const graph = await runEffect(service.graph({ address: ADDRESS }));
+
+    expect(graph.disclosure).toMatchObject({
+      depthRequested: 5,
+      minValueUsdt: 0,
+    });
+    expect(Math.max(...graph.nodes.map((node) => node.hop))).toBe(5);
+  });
+
+  it('returns the same graph for the same arguments', async () => {
+    const service = new WalletsService(makeFakeDb() as never);
+    const input = { address: ADDRESS, depth: 4, minValueUsdt: 100 };
+
+    expect(await runEffect(service.graph(input))).toEqual(
+      await runEffect(service.graph(input)),
+    );
+  });
+
+  it('rejects a malformed address, depth outside 1..5 and a negative minimum', async () => {
+    const db = makeFakeDb();
+    const service = new WalletsService(db as never);
+
+    for (const input of [
+      { address: 'nope' },
+      { address: ADDRESS, depth: 0 },
+      { address: ADDRESS, depth: 6 },
+      { address: ADDRESS, minValueUsdt: -1 },
+    ]) {
+      const outcome = await runEffectResult(service.graph(input));
+      expect(outcome._tag).toBe('Failure');
+    }
     expect(db.execute).not.toHaveBeenCalled();
   });
 });

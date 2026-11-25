@@ -4,11 +4,14 @@ import { sql } from 'drizzle-orm';
 import { InjectDrizzle } from '@nest-native/drizzle';
 import {
   walletAddressInputSchema,
+  walletGraphInputSchema,
   walletListInputSchema,
+  walletTraceGraphSchema,
   type WalletListItem,
   type WalletPage,
   type WalletDetail,
   type WalletScreening,
+  type WalletTraceGraph,
 } from '@repo/contracts';
 import { extractRows } from '../../common/db.ts';
 import type { AppDatabase } from '../../database.ts';
@@ -19,7 +22,7 @@ import {
   withResilience,
   type ValidationFailure,
 } from '../../common/effect/index.ts';
-import { mockGraph, screenAddress } from './wallets.mock.ts';
+import { mockTraceGraph, screenAddress } from './wallets.mock.ts';
 
 type WalletError = ValidationFailure | DbFailure;
 
@@ -61,7 +64,6 @@ function toWalletDetail(address: string, row: WalletRow): WalletDetail {
       wallet: toWalletListItem(row),
       flags: [],
       simulated: true,
-      graph: null,
     };
   }
 
@@ -71,7 +73,6 @@ function toWalletDetail(address: string, row: WalletRow): WalletDetail {
     wallet: toWalletListItem(row),
     flags: mock.flags,
     simulated: true,
-    graph: mockGraph({ address, band: mock.band, tier: mock.labelTier }),
   };
 }
 
@@ -161,18 +162,7 @@ export class WalletsService {
           );
         }
 
-        const detail = toWalletDetail(address, row);
-        if (detail.graph === null || detail.graph === undefined) {
-          return yield* Effect.fail(
-            new DbFailure({
-              sqlState: undefined,
-              detail: 'screened row read back unscored',
-              cause: undefined,
-            }),
-          );
-        }
-
-        return { ...detail, graph: detail.graph };
+        return toWalletDetail(address, row);
       }),
       { idempotent: true },
     );
@@ -224,12 +214,26 @@ export class WalletsService {
         },
         flags: mock.flags,
         simulated: true,
-        graph: mockGraph({
-          address,
-          band: mock.band,
-          tier: mock.labelTier,
-        }),
       };
+    });
+  }
+
+  /**
+   * The trace graph is its own query: depth and the minimum transfer value
+   * refetch the graph without re-reading the wallet row. The builder is pure
+   * and deterministic, so the payload is parsed against the shared contract
+   * before it leaves the service.
+   */
+  graph(input: unknown): Effect.Effect<WalletTraceGraph, WalletError> {
+    return Effect.gen(function* () {
+      const { address, depth, minValueUsdt } = yield* parse(
+        walletGraphInputSchema,
+        input,
+      );
+
+      return walletTraceGraphSchema.parse(
+        mockTraceGraph({ address, depth, minValueUsdt }),
+      );
     });
   }
 }

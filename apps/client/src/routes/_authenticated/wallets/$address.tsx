@@ -3,7 +3,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { tronAddressSchema, type WalletDetail } from '@repo/contracts'
 import { Button, CopyButton } from '@/components/atom'
-import { Sidebar, WalletGraphView } from '@/components/organisms'
+import { Sidebar, WalletTraceGraph } from '@/components/organisms'
 import { bandBadge, bandBar } from '@/components/organisms/wallets/band-styles'
 import { GraphQLRequestError } from '@/lib/graphql'
 import { useWalletDetail } from '@/lib/wallets'
@@ -83,16 +83,22 @@ function WalletDetailPage() {
             </Button>
           </div>
         ) : (
-          <WalletDetailView detail={wallet.data} />
+          <WalletDetailView detail={wallet.data} language={language} />
         )}
       </main>
     </div>
   )
 }
 
-function WalletDetailView({ detail }: { detail: WalletDetail }) {
+function WalletDetailView({
+  detail,
+  language,
+}: {
+  detail: WalletDetail
+  language: SupportedLanguage
+}) {
   const navigate = useNavigate()
-  const { wallet, flags, graph } = detail
+  const { wallet, flags } = detail
   const score = wallet.score
   const band = wallet.band
 
@@ -177,20 +183,9 @@ function WalletDetailView({ detail }: { detail: WalletDetail }) {
           </dl>
         </section>
 
-        {graph ? (
-          <section className="mt-6 border-t pt-6">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Fund flow
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {graph.nodes.filter((node) => !node.subject).length}{' '}
-                counterparties · 1 hop
-              </p>
-            </div>
-            <WalletGraphView graph={graph} />
-          </section>
-        ) : null}
+        <section className="mt-6 border-t pt-6">
+          <WalletTraceGraph address={wallet.address} language={language} />
+        </section>
 
         <section className="mt-6 border-t pt-6">
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
