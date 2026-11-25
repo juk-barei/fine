@@ -241,6 +241,108 @@ describe('mockTraceGraph', () => {
     expect(graph.nodes.every((node) => node.hop <= 1)).toBe(true);
     expect(graph.edges.every((edge) => edge.hop === 1)).toBe(true);
   });
+
+  it('sizes the neighbourhood so depth four fits the cap and depth five trips it', () => {
+    const four = mockTraceGraph({ address: ADDRESS, depth: 4, minValueUsdt: 0 });
+
+    expect(four.nodes.length).toBeLessThanOrEqual(500);
+    expect(four.disclosure).toMatchObject({
+      depthRequested: 4,
+      nodesReturned: four.nodes.length,
+      nodeCap: 500,
+      truncated: false,
+      coverage: 'complete',
+      reason: null,
+    });
+    expect(four.disclosure.loadedTransfers).toBe(four.edges.length);
+    expect(four.disclosure.reportedTransfers).toBe(four.edges.length);
+
+    const five = mockTraceGraph({ address: ADDRESS, depth: 5, minValueUsdt: 0 });
+
+    expect(five.nodes).toHaveLength(500);
+    expect(five.disclosure).toMatchObject({
+      depthRequested: 5,
+      nodesReturned: five.nodes.length,
+      nodeCap: 500,
+      truncated: true,
+      coverage: 'partial',
+    });
+    expect(five.disclosure.reason).toMatch(/cap/i);
+    expect(five.disclosure.loadedTransfers).toBe(five.edges.length);
+    expect(five.disclosure.loadedTransfers).toBeLessThan(
+      five.disclosure.reportedTransfers,
+    );
+    expect(walletTraceGraphSchema.safeParse(five).success).toBe(true);
+  });
+
+  it('keeps the highest-volume nodes first and lists them in cap priority order', () => {
+    const graph = mockTraceGraph({ address: ADDRESS, depth: 5, minValueUsdt: 0 });
+    const ranked = graph.nodes.filter((node) => !node.subject);
+    const volumeOf = (node: (typeof ranked)[number]) => node.volumeUsdt;
+
+    for (let index = 1; index < ranked.length; index += 1) {
+      const previous = ranked[index - 1];
+      const current = ranked[index];
+      const ordered =
+        volumeOf(previous) > volumeOf(current) ||
+        (volumeOf(previous) === volumeOf(current) &&
+          (previous.hop < current.hop ||
+            (previous.hop === current.hop && previous.address < current.address)));
+
+      expect(ordered).toBe(true);
+    }
+
+    // The cap lands in the deepest hop: almost every shallower wallet survives
+    // and the drop is confined to hop-five leaves with the lowest volume.
+    expect(graph.nodes[0]).toMatchObject({ address: ADDRESS, subject: true });
+    expect(graph.nodes.filter((node) => node.hop < 5).length).toBeGreaterThan(300);
+    expect(graph.nodes.some((node) => node.hop === 5)).toBe(true);
+  });
+
+  it('applies the minimum-value filter to transfers before the node cap', () => {
+    const all = mockTraceGraph({ address: ADDRESS, depth: 3, minValueUsdt: 0 });
+    const filtered = mockTraceGraph({
+      address: ADDRESS,
+      depth: 3,
+      minValueUsdt: 15_000,
+    });
+
+    expect(filtered.nodes.length).toBeGreaterThan(1);
+    expect(filtered.nodes.length).toBeLessThan(all.nodes.length);
+    const allAddresses = new Set(all.nodes.map((node) => node.address));
+    expect(
+      filtered.nodes.every((node) => allAddresses.has(node.address)),
+    ).toBe(true);
+    expect(filtered.edges.every((edge) => edge.amountUsdt >= 15_000)).toBe(true);
+    expect(filtered.disclosure).toMatchObject({
+      minValueUsdt: 15_000,
+      truncated: false,
+      coverage: 'complete',
+    });
+
+    // The same filter leaves a depth-five trace under the cap. Had the cap run
+    // first it would have reported a truncated 500-node trace.
+    const deep = mockTraceGraph({
+      address: ADDRESS,
+      depth: 5,
+      minValueUsdt: 15_000,
+    });
+    expect(deep.nodes.length).toBeGreaterThan(filtered.nodes.length);
+    expect(deep.nodes.length).toBeLessThan(500);
+    expect(deep.disclosure).toMatchObject({
+      truncated: false,
+      coverage: 'complete',
+      reason: null,
+    });
+    expect(deep.disclosure.reportedTransfers).toBe(deep.edges.length);
+  });
+
+  it('returns an identical payload for repeated identical capped requests', () => {
+    const request = { address: ADDRESS, depth: 5, minValueUsdt: 0 };
+
+    expect(mockTraceGraph(request)).toEqual(mockTraceGraph(request));
+    expect(mockTraceGraph(request).disclosure.truncated).toBe(true);
+  });
 });
 
 describe('screenAddress with the OFAC seed', () => {
