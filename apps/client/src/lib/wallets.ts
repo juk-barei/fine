@@ -3,9 +3,11 @@ import {
   walletDetailSchema,
   walletPageSchema,
   walletScreeningSchema,
+  walletTraceGraphSchema,
   type WalletDetail,
   type WalletPage,
   type WalletScreening,
+  type WalletTraceGraph,
 } from '@repo/contracts'
 import { graphqlRequest } from './graphql'
 
@@ -55,23 +57,6 @@ const SCREEN_WALLET_MUTATION = `
         decisionStatus
         lastAnalysed
       }
-      graph {
-        nodes {
-          id
-          label
-          band
-          tier
-          subject
-          hops
-        }
-        edges {
-          from
-          to
-          amountUsdt
-          txHash
-          timestamp
-        }
-      }
     }
   }
 `
@@ -114,26 +99,84 @@ const WALLET_QUERY = `
         decisionStatus
         lastAnalysed
       }
-      graph {
-        nodes {
-          id
-          label
-          band
+    }
+  }
+`
+
+const WALLET_GRAPH_QUERY = `
+  query WalletGraph($address: String!, $depth: Int, $minValueUsdt: Float) {
+    walletGraph(address: $address, depth: $depth, minValueUsdt: $minValueUsdt) {
+      simulated
+      nodes {
+        address
+        hop
+        kind
+        title
+        badge
+        band
+        pLaundering
+        confidence
+        volumeUsdt
+        intermediary
+        labels {
           tier
-          subject
-          hops
+          source
+          listedAt
         }
-        edges {
-          from
-          to
-          amountUsdt
-          txHash
-          timestamp
+        rules {
+          code
+          triggered
+          summary
         }
+        subject
+      }
+      edges {
+        id
+        from
+        to
+        amountUsdt
+        txHash
+        timestamp
+        hop
+        direction
+      }
+      disclosure {
+        depthRequested
+        depthReached
+        minValueUsdt
+        nodesReturned
+        nodeCap
+        truncated
+        coverage
+        loadedTransfers
+        reportedTransfers
+        reason
       }
     }
   }
 `
+
+/**
+ * The wallet's trace graph. Depth and the minimum transfer value are server
+ * inputs: changing either refetches the graph instead of filtering client-side.
+ */
+export function useWalletGraph(
+  address: string | null,
+  depth = 5,
+  minValueUsdt = 0,
+) {
+  return useQuery({
+    queryKey: ['wallet-graph', address, depth, minValueUsdt],
+    enabled: address !== null,
+    queryFn: async (): Promise<WalletTraceGraph> => {
+      const data = await graphqlRequest<{ walletGraph: unknown }>(
+        WALLET_GRAPH_QUERY,
+        { address, depth, minValueUsdt },
+      )
+      return walletTraceGraphSchema.parse(data.walletGraph)
+    },
+  })
+}
 
 /** One wallet's page data; `null` means nobody has screened the address. */
 export function useWalletDetail(address: string | null) {
@@ -162,23 +205,6 @@ const PREVIEW_WALLET_QUERY = `
         labelTier
         decisionStatus
         lastAnalysed
-      }
-      graph {
-        nodes {
-          id
-          label
-          band
-          tier
-          subject
-          hops
-        }
-        edges {
-          from
-          to
-          amountUsdt
-          txHash
-          timestamp
-        }
       }
     }
   }

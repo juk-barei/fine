@@ -13,46 +13,124 @@ type WalletPage {
   total: Int!
 }
 
+enum WalletBand {
+  low
+  moderate
+  high
+}
+
+enum WalletConfidence {
+  high
+  medium
+  low
+}
+
+enum LabelTier {
+  tier_1
+  tier_2
+  tier_3
+}
+
+enum TraceNodeKind {
+  subject
+  counterparty
+  bridge
+  exchange
+  mixer
+  darknet
+  bank
+  sanctioned
+  infrastructure
+  unknown
+}
+
+enum IntermediaryClass {
+  pass_through
+  peel_chain
+  consolidation
+}
+
+enum CoverageStatus {
+  complete
+  partial
+}
+
+type TraceLabel {
+  tier: LabelTier!
+  source: String!
+  listedAt: String
+}
+
+type TraceRule {
+  code: String!
+  triggered: Boolean!
+  summary: String!
+}
+
+type TraceNode {
+  address: String!
+  hop: Int!
+  kind: TraceNodeKind!
+  title: String
+  badge: String
+  band: WalletBand
+  pLaundering: Float
+  confidence: WalletConfidence
+  volumeUsdt: Float!
+  intermediary: IntermediaryClass
+  labels: [TraceLabel!]!
+  rules: [TraceRule!]!
+  subject: Boolean!
+}
+
+type TraceEdge {
+  id: ID!
+  from: String!
+  to: String!
+  amountUsdt: Float!
+  txHash: String!
+  timestamp: String!
+  hop: Int!
+  direction: String!
+}
+
+type TraceDisclosure {
+  depthRequested: Int!
+  depthReached: Int!
+  minValueUsdt: Float!
+  nodesReturned: Int!
+  nodeCap: Int!
+  truncated: Boolean!
+  coverage: CoverageStatus!
+  loadedTransfers: Int!
+  reportedTransfers: Int!
+  reason: String
+}
+
+type WalletTraceGraph {
+  simulated: Boolean!
+  nodes: [TraceNode!]!
+  edges: [TraceEdge!]!
+  disclosure: TraceDisclosure!
+}
+
 extend type Query {
   wallets(limit: Int, offset: Int, status: String): WalletPage!
   wallet(address: String!): WalletDetail
   previewWallet(address: String!): WalletScreening!
-}
-
-type WalletGraphNode {
-  id: ID!
-  label: String!
-  band: String!
-  tier: String!
-  subject: Boolean!
-  hops: Int!
-}
-
-type WalletGraphEdge {
-  from: ID!
-  to: ID!
-  amountUsdt: Float!
-  txHash: String!
-  timestamp: String!
-}
-
-type WalletGraph {
-  nodes: [WalletGraphNode!]!
-  edges: [WalletGraphEdge!]!
+  walletGraph(address: String!, depth: Int, minValueUsdt: Float): WalletTraceGraph!
 }
 
 type WalletDetail {
   wallet: WalletListItem!
   flags: [String!]!
   simulated: Boolean!
-  graph: WalletGraph
 }
 
 type WalletScreening {
   wallet: WalletListItem!
   flags: [String!]!
   simulated: Boolean!
-  graph: WalletGraph!
 }
 
 extend type Mutation {

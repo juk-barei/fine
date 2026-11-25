@@ -59,51 +59,206 @@ export const walletAddressInputSchema = z.object({
 });
 export type WalletAddressInput = z.infer<typeof walletAddressInputSchema>;
 
-export const walletGraphNodeSchema = z.object({
-  id: tronAddressSchema,
-  label: z.string(),
-  band: walletBandSchema,
-  tier: labelTierSchema,
-  /** The screened wallet itself; exactly one node carries this. */
-  subject: z.boolean(),
-  hops: z.number().int().min(0),
-});
-export type WalletGraphNode = z.infer<typeof walletGraphNodeSchema>;
+/** What a traced address is: the subject itself or an entity in its flow. */
+export const traceNodeKindSchema = z.enum([
+  'subject',
+  'counterparty',
+  'bridge',
+  'exchange',
+  'mixer',
+  'darknet',
+  'bank',
+  'sanctioned',
+  'infrastructure',
+  'unknown',
+]);
+export type TraceNodeKind = z.infer<typeof traceNodeKindSchema>;
 
-export const walletGraphEdgeSchema = z.object({
-  /** Sender and receiver; the order carries the direction of the transfer. */
+export const intermediaryClassSchema = z.enum([
+  'pass_through',
+  'peel_chain',
+  'consolidation',
+]);
+export type IntermediaryClass = z.infer<typeof intermediaryClassSchema>;
+
+export const coverageStatusSchema = z.enum(['complete', 'partial']);
+export type CoverageStatus = z.infer<typeof coverageStatusSchema>;
+
+export const traceEdgeDirectionSchema = z.enum(['inbound', 'outbound']);
+export type TraceEdgeDirection = z.infer<typeof traceEdgeDirectionSchema>;
+
+export const traceLabelSchema = z.object({
+  tier: labelTierSchema,
+  source: z.string().min(1),
+  /** Unknown until the real label pipeline carries provenance. */
+  listedAt: z.string().datetime().nullable(),
+});
+export type TraceLabel = z.infer<typeof traceLabelSchema>;
+
+/**
+ * One baseline rule's state. Codes are the product's R1–R6, never the
+ * prototype's invented FR codes.
+ */
+export const traceRuleSchema = z.object({
+  code: z.string().regex(/^R[1-6]$/, 'expected a rule code from R1 to R6'),
+  triggered: z.boolean(),
+  summary: z.string().min(1),
+});
+export type TraceRule = z.infer<typeof traceRuleSchema>;
+
+export const traceNodeSchema = z.object({
+  address: tronAddressSchema,
+  hop: z.number().int().min(0).max(5),
+  kind: traceNodeKindSchema,
+  title: z.string().nullable(),
+  badge: z.string().nullable(),
+  band: walletBandSchema.nullable(),
+  pLaundering: z.number().min(0).max(1).nullable(),
+  confidence: walletConfidenceSchema.nullable(),
+  volumeUsdt: z.number().min(0),
+  intermediary: intermediaryClassSchema.nullable(),
+  labels: z.array(traceLabelSchema),
+  rules: z.array(traceRuleSchema),
+  /** Exactly one node is the wallet the investigator opened. */
+  subject: z.boolean(),
+});
+export type TraceNode = z.infer<typeof traceNodeSchema>;
+
+export const traceEdgeSchema = z.object({
+  id: z.string().min(1),
   from: tronAddressSchema,
   to: tronAddressSchema,
   amountUsdt: z.number().positive(),
   txHash: z.string().regex(/^[0-9a-f]{64}$/, 'expected a 64-character hex txid'),
   timestamp: z.string().datetime(),
+  hop: z.number().int().min(1).max(5),
+  direction: traceEdgeDirectionSchema,
 });
-export type WalletGraphEdge = z.infer<typeof walletGraphEdgeSchema>;
-
-export const walletGraphSchema = z.object({
-  nodes: z.array(walletGraphNodeSchema).min(1),
-  edges: z.array(walletGraphEdgeSchema),
-});
-export type WalletGraph = z.infer<typeof walletGraphSchema>;
+export type TraceEdge = z.infer<typeof traceEdgeSchema>;
 
 /**
- * The result of one screening run. `simulated` marks results produced by the
- * deterministic mock scorer, so the UI can say so rather than pretend.
+ * What the server actually did: the depth asked for and reached, how many
+ * nodes the cap allowed, and whether the index covered the flow. A truncated
+ * trace must never claim complete coverage.
  */
+export const traceDisclosureSchema = z
+  .object({
+    depthRequested: z.number().int().min(1).max(5),
+    depthReached: z.number().int().min(0).max(5),
+    minValueUsdt: z.number().min(0),
+    nodesReturned: z.number().int().min(1),
+    nodeCap: z.number().int().positive(),
+    truncated: z.boolean(),
+    coverage: coverageStatusSchema,
+    loadedTransfers: z.number().int().min(0),
+    reportedTransfers: z.number().int().min(0),
+    reason: z.string().min(1).nullable(),
+  })
+  .superRefine((disclosure, ctx) => {
+    if (disclosure.depthReached > disclosure.depthRequested) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['depthReached'],
+        message: 'depthReached cannot exceed depthRequested',
+      });
+    }
+    if (disclosure.nodesReturned > disclosure.nodeCap) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['nodesReturned'],
+        message: 'nodesReturned cannot exceed nodeCap',
+      });
+    }
+    if (disclosure.truncated && disclosure.coverage === 'complete') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['coverage'],
+        message: 'a truncated trace cannot report complete coverage',
+      });
+    }
+    if (disclosure.coverage === 'partial' && disclosure.reason === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['reason'],
+        message: 'partial coverage must say why',
+      });
+    }
+  });
+export type TraceDisclosure = z.infer<typeof traceDisclosureSchema>;
+
+export const walletTraceGraphSchema = z
+  .object({
+    simulated: z.boolean(),
+    nodes: z.array(traceNodeSchema).min(1),
+    edges: z.array(traceEdgeSchema),
+    disclosure: traceDisclosureSchema,
+  })
+  .superRefine((graph, ctx) => {
+    const addresses = new Set(graph.nodes.map((node) => node.address));
+    if (addresses.size !== graph.nodes.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['nodes'],
+        message: 'node addresses must be unique',
+      });
+    }
+
+    const subjects = graph.nodes.filter((node) => node.subject);
+    if (subjects.length !== 1) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['nodes'],
+        message: 'exactly one node must be the subject',
+      });
+    } else {
+      const [subject] = subjects;
+      if (subject.hop !== 0 || subject.kind !== 'subject') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['nodes'],
+          message: 'the subject must be hop 0 with kind "subject"',
+        });
+      }
+    }
+
+    for (const [index, edge] of graph.edges.entries()) {
+      if (!addresses.has(edge.from) || !addresses.has(edge.to)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['edges', index],
+          message: 'an edge must connect two returned nodes',
+        });
+      }
+    }
+
+    if (graph.disclosure.nodesReturned !== graph.nodes.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['disclosure', 'nodesReturned'],
+        message: 'nodesReturned must match the nodes in the payload',
+      });
+    }
+  });
+export type WalletTraceGraph = z.infer<typeof walletTraceGraphSchema>;
+
+export const walletGraphInputSchema = z.object({
+  address: tronAddressSchema,
+  depth: z.number().int().min(1).max(5).default(5),
+  minValueUsdt: z.number().min(0).default(0),
+});
+export type WalletGraphInput = z.infer<typeof walletGraphInputSchema>;
+
 /**
- * A wallet page's data. The graph is null for an unscored row: there is
- * nothing to draw, and an empty graph would read as safety.
+ * A wallet page's data. The graph is a separate query: the detail payload
+ * carries only the wallet, its flags and the simulation marker.
  */
 export const walletDetailSchema = z.object({
   wallet: walletListItemSchema,
   flags: z.array(z.string()),
   simulated: z.boolean(),
-  graph: walletGraphSchema.nullable(),
 });
 export type WalletDetail = z.infer<typeof walletDetailSchema>;
 
-/** One screening run's response: always scored, so the graph is present. */
-export const walletScreeningSchema = walletDetailSchema.extend({
-  graph: walletGraphSchema,
-});
+/** One screening run's response: the wallet plus its re-derived flags. */
+export const walletScreeningSchema = walletDetailSchema;
 export type WalletScreening = z.infer<typeof walletScreeningSchema>;
