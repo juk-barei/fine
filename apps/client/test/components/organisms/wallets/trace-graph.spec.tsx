@@ -9,6 +9,7 @@ vi.mock('@/lib/wallets', () => ({
 
 import { useWalletGraph } from '@/lib/wallets';
 import { WalletTraceGraph as WalletTraceGraphSection } from '@/components/organisms/wallets/trace-graph/trace-graph';
+import { TraceGraphDisclosure } from '@/components/organisms/wallets/trace-graph/trace-graph-disclosure';
 
 const SUBJECT = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
 const HOP_ONE = 'TYASr5UV6HEcXatwdFQfmLVUqQQQMUxHLS';
@@ -52,9 +53,18 @@ const nodes: TraceNode[] = [
     address: HOP_ONE,
     hop: 1,
     subject: false,
-    band: 'moderate',
+    band: 'high',
+    pLaundering: 0.83,
+    confidence: 'medium',
     volumeUsdt: 4_000,
     intermediary: 'pass_through',
+    labels: [
+      {
+        tier: 'tier_1',
+        source: 'OFAC SDN (simulated)',
+        listedAt: '2026-09-09T00:00:00.000Z',
+      },
+    ],
   }),
   node({
     address: HOP_ONE_LOW,
@@ -120,6 +130,25 @@ const graph: WalletTraceGraph = {
 };
 
 const noop = () => {};
+
+/** The term and value cell rendered for a `dt`/`dd` pair. */
+function disclosureRow(region: HTMLElement, term: string): string {
+  const label = within(region).getByText(term);
+  return label.parentElement?.textContent ?? '';
+}
+
+const truncatedDisclosure = {
+  ...graph.disclosure,
+  depthRequested: 5,
+  depthReached: 3,
+  minValueUsdt: 250,
+  nodeCap: 4,
+  truncated: true,
+  coverage: 'partial' as const,
+  loadedTransfers: 1_200,
+  reportedTransfers: 2_400,
+  reason: 'Index covers half of the reported transfers.',
+};
 
 describe('TraceGraphCanvas', () => {
   it('renders the subject and counterparties with their visible labels', () => {
@@ -532,6 +561,83 @@ describe('WalletTraceGraph', () => {
     expect(within(inspector).getByText(HOP_TWO)).toBeTruthy();
   });
 
+  it('explains a labelled intermediary node in the product vocabulary', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_ONE}`) }),
+    );
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+
+    expect(within(inspector).getByText(HOP_ONE)).toBeTruthy();
+    expect(within(inspector).getByText('Band')).toBeTruthy();
+    const band = within(inspector).getByText('High');
+    expect(band.className).toContain('text-destructive');
+    expect(within(inspector).getByText('p(laundering)')).toBeTruthy();
+    expect(within(inspector).getByText('Confidence')).toBeTruthy();
+    expect(within(inspector).getByText('Medium')).toBeTruthy();
+    expect(within(inspector).getByText('0.83')).toBeTruthy();
+    expect(within(inspector).getByText('Hop')).toBeTruthy();
+    expect(within(inspector).getByText('1')).toBeTruthy();
+    expect(within(inspector).getByText('Volume traced')).toBeTruthy();
+    expect(within(inspector).getByText('4,000 USDT')).toBeTruthy();
+    expect(within(inspector).getByText('Intermediary')).toBeTruthy();
+    expect(within(inspector).getByText('Pass-through')).toBeTruthy();
+    expect(within(inspector).getByText('Tier 1')).toBeTruthy();
+    expect(within(inspector).getByText('OFAC SDN (simulated)')).toBeTruthy();
+    expect(within(inspector).getByText('2026-09-09')).toBeTruthy();
+  });
+
+  it('explains an unlabelled node without inventing a label', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_TWO}`) }),
+    );
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+
+    expect(within(inspector).getByText('No label')).toBeTruthy();
+    expect(within(inspector).queryByText('Tier 1')).toBeNull();
+    expect(within(inspector).queryByText('Tier 2')).toBeNull();
+    expect(within(inspector).getByText('0.10')).toBeTruthy();
+    expect(within(inspector).getByText('Intermediary')).toBeTruthy();
+  });
+
+  it('lists R1 to R6 with their triggered status and no invented codes', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_ONE}`) }),
+    );
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+    const codes = within(inspector)
+      .getAllByText(/^R[1-6]$/)
+      .map((element) => element.textContent);
+
+    expect(codes).toEqual(['R1', 'R2', 'R3', 'R4', 'R5', 'R6']);
+    expect(within(inspector).getByText('R1 summary')).toBeTruthy();
+    expect(within(inspector).getByText('Triggered')).toBeTruthy();
+    expect(within(inspector).getAllByText('Not triggered')).toHaveLength(5);
+    expect(document.body.textContent).not.toMatch(/FR[-\s]?\d/);
+  });
+
+  it('shows amount, hash, timestamp and direction when a transfer is selected', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Transfer.*9,000/ }));
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+
+    expect(within(inspector).getByText('9,000 USDT')).toBeTruthy();
+    expect(within(inspector).getByText('b'.repeat(64))).toBeTruthy();
+    expect(within(inspector).getByText('2026-11-12 08:10:00 UTC')).toBeTruthy();
+    expect(within(inspector).getByText('Direction')).toBeTruthy();
+    expect(within(inspector).getByText('Outbound')).toBeTruthy();
+  });
+
   it('shows an empty state when the wallet has no traced neighbourhood', () => {
     mockedHook.mockReturnValue({
       data: {
@@ -557,6 +663,20 @@ describe('WalletTraceGraph', () => {
     ).toBeTruthy();
   });
 
+  it('renders the disclosure the payload reported, not the query it asked for', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const disclosure = screen.getByRole('group', {
+      name: 'Graph disclosure',
+    });
+
+    expect(mockedHook).toHaveBeenCalledWith(SUBJECT, 5, 0);
+    expect(disclosureRow(disclosure, 'Depth requested')).toContain('2');
+    expect(
+      within(disclosure).getByRole('note').textContent,
+    ).toContain('Simulated data');
+  });
+
   it('shows a loading state while the query runs', () => {
     mockedHook.mockReturnValue({
       data: undefined,
@@ -580,6 +700,88 @@ describe('WalletTraceGraph', () => {
 
     expect(screen.getByRole('alert').textContent).toContain(
       'Could not load the trace graph.',
+    );
+  });
+});
+
+describe('TraceGraphDisclosure', () => {
+  it('states requested depth, depth reached, nodes against the cap, coverage and minimum value', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={graph.disclosure}
+        simulated={graph.simulated}
+        language="en"
+      />,
+    );
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Depth requested')).toContain('2');
+    expect(disclosureRow(disclosure, 'Depth reached')).toContain('2');
+    expect(disclosureRow(disclosure, 'Nodes returned')).toContain(
+      '4 of 500 cap',
+    );
+    expect(disclosureRow(disclosure, 'Minimum transfer')).toContain('0 USDT');
+    expect(disclosureRow(disclosure, 'Coverage')).toContain('Complete');
+    expect(within(disclosure).getByText('3 of 3 transfers')).toBeTruthy();
+    expect(within(disclosure).getByText('Within the node cap.')).toBeTruthy();
+    expect(within(disclosure).queryByText(/^Node cap reached/)).toBeNull();
+    expect(within(disclosure).queryByText(/^Reason:/)).toBeNull();
+    expect(within(disclosure).queryByText(/^Stopped short/)).toBeNull();
+  });
+
+  it('states truncation, partial coverage with counts, the reason and the depth shortfall', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={truncatedDisclosure}
+        simulated={false}
+        language="en"
+      />,
+    );
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Depth requested')).toContain('5');
+    expect(disclosureRow(disclosure, 'Depth reached')).toContain('3');
+    expect(disclosureRow(disclosure, 'Nodes returned')).toContain('4 of 4 cap');
+    expect(disclosureRow(disclosure, 'Minimum transfer')).toContain(
+      '250 USDT',
+    );
+    expect(disclosureRow(disclosure, 'Coverage')).toContain('Partial');
+    expect(within(disclosure).getByText('1,200 of 2,400 transfers')).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Reason: Index covers half of the reported transfers.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Node cap reached — the trace stopped at the cap.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Stopped short of the requested depth: 3 of 5 hops.',
+      ),
+    ).toBeTruthy();
+    expect(within(disclosure).queryByText('Within the node cap.')).toBeNull();
+    expect(within(disclosure).queryByRole('note')).toBeNull();
+  });
+
+  it('marks a simulated payload in words, not colour alone', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={graph.disclosure}
+        simulated
+        language="en"
+      />,
+    );
+
+    const marker = screen.getByRole('note');
+
+    expect(marker.textContent).toContain('Simulated data');
+    expect(marker.textContent).toContain(
+      'Synthetic fixture, not chain evidence.',
     );
   });
 });
