@@ -9,6 +9,7 @@ vi.mock('@/lib/wallets', () => ({
 
 import { useWalletGraph } from '@/lib/wallets';
 import { WalletTraceGraph as WalletTraceGraphSection } from '@/components/organisms/wallets/trace-graph/trace-graph';
+import { TraceGraphDisclosure } from '@/components/organisms/wallets/trace-graph/trace-graph-disclosure';
 
 const SUBJECT = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
 const HOP_ONE = 'TYASr5UV6HEcXatwdFQfmLVUqQQQMUxHLS';
@@ -129,6 +130,25 @@ const graph: WalletTraceGraph = {
 };
 
 const noop = () => {};
+
+/** The term and value cell rendered for a `dt`/`dd` pair. */
+function disclosureRow(region: HTMLElement, term: string): string {
+  const label = within(region).getByText(term);
+  return label.parentElement?.textContent ?? '';
+}
+
+const truncatedDisclosure = {
+  ...graph.disclosure,
+  depthRequested: 5,
+  depthReached: 3,
+  minValueUsdt: 250,
+  nodeCap: 4,
+  truncated: true,
+  coverage: 'partial' as const,
+  loadedTransfers: 1_200,
+  reportedTransfers: 2_400,
+  reason: 'Index covers half of the reported transfers.',
+};
 
 describe('TraceGraphCanvas', () => {
   it('renders the subject and counterparties with their visible labels', () => {
@@ -380,6 +400,20 @@ describe('WalletTraceGraph', () => {
     ).toBeTruthy();
   });
 
+  it('renders the disclosure the payload reported, not the query it asked for', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const disclosure = screen.getByRole('group', {
+      name: 'Graph disclosure',
+    });
+
+    expect(mockedHook).toHaveBeenCalledWith(SUBJECT, 5, 0);
+    expect(disclosureRow(disclosure, 'Depth requested')).toContain('2');
+    expect(
+      within(disclosure).getByRole('note').textContent,
+    ).toContain('Simulated data');
+  });
+
   it('shows a loading state while the query runs', () => {
     mockedHook.mockReturnValue({
       data: undefined,
@@ -403,6 +437,88 @@ describe('WalletTraceGraph', () => {
 
     expect(screen.getByRole('alert').textContent).toContain(
       'Could not load the trace graph.',
+    );
+  });
+});
+
+describe('TraceGraphDisclosure', () => {
+  it('states requested depth, depth reached, nodes against the cap, coverage and minimum value', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={graph.disclosure}
+        simulated={graph.simulated}
+        language="en"
+      />,
+    );
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Depth requested')).toContain('2');
+    expect(disclosureRow(disclosure, 'Depth reached')).toContain('2');
+    expect(disclosureRow(disclosure, 'Nodes returned')).toContain(
+      '4 of 500 cap',
+    );
+    expect(disclosureRow(disclosure, 'Minimum transfer')).toContain('0 USDT');
+    expect(disclosureRow(disclosure, 'Coverage')).toContain('Complete');
+    expect(within(disclosure).getByText('3 of 3 transfers')).toBeTruthy();
+    expect(within(disclosure).getByText('Within the node cap.')).toBeTruthy();
+    expect(within(disclosure).queryByText(/^Node cap reached/)).toBeNull();
+    expect(within(disclosure).queryByText(/^Reason:/)).toBeNull();
+    expect(within(disclosure).queryByText(/^Stopped short/)).toBeNull();
+  });
+
+  it('states truncation, partial coverage with counts, the reason and the depth shortfall', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={truncatedDisclosure}
+        simulated={false}
+        language="en"
+      />,
+    );
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Depth requested')).toContain('5');
+    expect(disclosureRow(disclosure, 'Depth reached')).toContain('3');
+    expect(disclosureRow(disclosure, 'Nodes returned')).toContain('4 of 4 cap');
+    expect(disclosureRow(disclosure, 'Minimum transfer')).toContain(
+      '250 USDT',
+    );
+    expect(disclosureRow(disclosure, 'Coverage')).toContain('Partial');
+    expect(within(disclosure).getByText('1,200 of 2,400 transfers')).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Reason: Index covers half of the reported transfers.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Node cap reached — the trace stopped at the cap.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Stopped short of the requested depth: 3 of 5 hops.',
+      ),
+    ).toBeTruthy();
+    expect(within(disclosure).queryByText('Within the node cap.')).toBeNull();
+    expect(within(disclosure).queryByRole('note')).toBeNull();
+  });
+
+  it('marks a simulated payload in words, not colour alone', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={graph.disclosure}
+        simulated
+        language="en"
+      />,
+    );
+
+    const marker = screen.getByRole('note');
+
+    expect(marker.textContent).toContain('Simulated data');
+    expect(marker.textContent).toContain(
+      'Synthetic fixture, not chain evidence.',
     );
   });
 });
