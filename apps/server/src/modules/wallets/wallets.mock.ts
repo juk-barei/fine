@@ -235,14 +235,15 @@ function compareForCap(left: TraceNode, right: TraceNode): number {
  * from `screenAddress`, so the graph and the wallet list agree.
  *
  * The node cap runs after that filter and keeps the highest-value nodes, then
- * the nearest hop, then the address. When it stops the trace short the
- * disclosure says so: `truncated`, `coverage: partial`, a reason, and the
- * transfers loaded against the transfers reported for this request. A node
- * the cap evicts can leave its high-value descendants in the payload as an
- * island; the disclosure is what tells the investigator the picture is partial.
- * `volumeUsdt` sums every in-scope transfer incident to the wallet, including
- * those whose counterparty the cap left out, so the ranking the cap used and
- * the volume shown on the node are the same number.
+ * the nearest hop, then the address. Keeping nodes by value can evict a node
+ * whose descendants survive, so the cap is followed by a reachability pass:
+ * anything the subject can no longer reach is dropped with its edges, and the
+ * disclosure counts what was actually returned. When the cap stops the trace
+ * short the disclosure still says so: `truncated`, `coverage: partial`, a
+ * reason, and the transfers loaded against the transfers reported for this
+ * request. `volumeUsdt` sums every in-scope transfer incident to the wallet,
+ * including those whose counterparty the cap left out, so the ranking the cap
+ * used and the volume shown on the node are the same number.
  */
 export function mockTraceGraph({
   address,
@@ -354,24 +355,56 @@ export function mockTraceGraph({
   const keptEdges = reportedEdges.filter(
     (edge) => keptAddresses.has(edge.from) && keptAddresses.has(edge.to),
   );
-  const depthReached = Math.max(...keptNodes.map((node) => node.hop));
+
+  // The cap ranks by value, so an evicted parent can strand its children.
+  // Reachability is recomputed over what survived: an island is not part of
+  // the subject's trace and must not be returned as if it were.
+  const keptIncident = new Map<string, TraceEdge[]>();
+  for (const edge of keptEdges) {
+    for (const endpoint of [edge.from, edge.to]) {
+      const list = keptIncident.get(endpoint);
+      if (list) list.push(edge);
+      else keptIncident.set(endpoint, [edge]);
+    }
+  }
+
+  const connected = new Set<string>([subject.address]);
+  const connectedQueue = [subject.address];
+  while (connectedQueue.length > 0) {
+    const current = connectedQueue.shift() as string;
+    for (const edge of keptIncident.get(current) ?? []) {
+      const other = edge.from === current ? edge.to : edge.from;
+      if (!connected.has(other)) {
+        connected.add(other);
+        connectedQueue.push(other);
+      }
+    }
+  }
+
+  const returnedNodes = keptNodes.filter((node) =>
+    connected.has(node.address),
+  );
+  const returnedEdges = keptEdges.filter(
+    (edge) => connected.has(edge.from) && connected.has(edge.to),
+  );
+  const depthReached = Math.max(...returnedNodes.map((node) => node.hop));
 
   return {
     simulated: true,
-    nodes: keptNodes,
-    edges: keptEdges,
+    nodes: returnedNodes,
+    edges: returnedEdges,
     disclosure: {
       depthRequested: depth,
       depthReached,
       minValueUsdt,
-      nodesReturned: keptNodes.length,
+      nodesReturned: returnedNodes.length,
       nodeCap: TRACE_NODE_CAP,
       truncated,
       coverage: truncated ? 'partial' : 'complete',
-      loadedTransfers: keptEdges.length,
+      loadedTransfers: returnedEdges.length,
       reportedTransfers: reportedEdges.length,
       reason: truncated
-        ? `Node cap of ${TRACE_NODE_CAP} reached: ${keptNodes.length} of ${scopedNodes.length} nodes kept, highest value first.`
+        ? `Node cap of ${TRACE_NODE_CAP} reached: ${returnedNodes.length} of ${scopedNodes.length} nodes kept, highest value first.`
         : null,
     },
   };

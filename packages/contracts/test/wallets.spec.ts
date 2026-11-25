@@ -9,6 +9,8 @@ import {
   traceDisclosureSchema,
   walletGraphInputSchema,
   walletTraceGraphSchema,
+  WALLET_GRAPH_DEFAULT_DEPTH,
+  WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
 } from '../src/index.ts';
 
 const SCORED = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
@@ -357,6 +359,11 @@ describe('wallet trace graph contract', () => {
 });
 
 describe('wallet graph input', () => {
+  it('exports the documented defaults for every caller to reuse', () => {
+    expect(WALLET_GRAPH_DEFAULT_DEPTH).toBe(5);
+    expect(WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT).toBe(0);
+  });
+
   it('defaults depth to 5 and minimum value to 0', () => {
     expect(walletGraphInputSchema.parse({ address: SCORED })).toEqual({
       address: SCORED,

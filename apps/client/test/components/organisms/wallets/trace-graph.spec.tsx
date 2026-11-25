@@ -444,6 +444,177 @@ describe('TraceGraphCanvas', () => {
     fireEvent.blur(transfer);
     expect(transfer.getAttribute('data-focused')).toBeNull();
   });
+
+  it('bounds the canvas to a scrollable viewport while zoom and reset still work', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const svg = screen.getByRole('group', { name: 'Wallet trace graph' });
+    const viewport = svg.parentElement;
+
+    expect(viewport?.className).toContain('overflow-auto');
+    expect(viewport?.style.maxHeight).toBe('560px');
+
+    const initialWidth = Number(svg.getAttribute('width'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(Number(svg.getAttribute('width'))).toBeGreaterThan(initialWidth);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset view' }));
+    expect(Number(svg.getAttribute('width'))).toBe(initialWidth);
+  });
+
+  it('announces a node band and label tier, and calls a null band unscored', () => {
+    const { unmount } = render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const labelled =
+      screen
+        .getByRole('button', { name: new RegExp(`^Node ${HOP_ONE},`) })
+        .getAttribute('aria-label') ?? '';
+    expect(labelled).toContain('Band High');
+    expect(labelled).toContain('Tier 1');
+
+    const unlabelled =
+      screen
+        .getByRole('button', { name: new RegExp(`^Node ${HOP_TWO},`) })
+        .getAttribute('aria-label') ?? '';
+    expect(unlabelled).toContain('Band Low');
+    expect(unlabelled).not.toContain('Tier');
+
+    unmount();
+
+    render(
+      <TraceGraphCanvas
+        graph={{
+          ...graph,
+          nodes: nodes.map((candidate) =>
+            candidate.address === HOP_ONE_LOW
+              ? { ...candidate, band: null, labels: [] }
+              : candidate,
+          ),
+        }}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const unscored =
+      screen
+        .getByRole('button', { name: new RegExp(`^Node ${HOP_ONE_LOW},`) })
+        .getAttribute('aria-label') ?? '';
+    expect(unscored).toContain('Band Unscored');
+  });
+
+  it('renders a null band neutrally instead of as low risk', () => {
+    render(
+      <TraceGraphCanvas
+        graph={{
+          ...graph,
+          nodes: nodes.map((candidate) =>
+            candidate.address === HOP_ONE_LOW
+              ? { ...candidate, band: null, labels: [] }
+              : candidate,
+          ),
+        }}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const unscored = screen.getByRole('button', {
+      name: new RegExp(`^Node ${HOP_ONE_LOW},`),
+    });
+    expect(unscored.className).toContain('bg-muted/40');
+    expect(unscored.className).not.toContain('emerald');
+
+    const low = screen.getByRole('button', {
+      name: new RegExp(`^Node ${HOP_TWO},`),
+    });
+    expect(low.className).toContain('emerald');
+  });
+
+  it('renders the contract badge when a node carries one', () => {
+    render(
+      <TraceGraphCanvas
+        graph={{
+          ...graph,
+          nodes: nodes.map((candidate) =>
+            candidate.address === HOP_TWO
+              ? { ...candidate, badge: 'OFAC SDN' }
+              : candidate,
+          ),
+        }}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    expect(screen.getByText('OFAC SDN')).toBeTruthy();
+  });
+
+  it('dims everything that is not an immediate neighbour while a node is hovered', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const nodeButton = (address: string) =>
+      screen.getByRole('button', { name: new RegExp(`^Node ${address},`) });
+    const edgeButton = (amount: string) =>
+      screen.getByRole('button', {
+        name: new RegExp(`^Transfer of ${amount} USDT`),
+      });
+
+    fireEvent.mouseEnter(nodeButton(HOP_ONE));
+
+    // HOP_ONE is adjacent to the subject (edge-1) and HOP_TWO (edge-2).
+    expect(nodeButton(HOP_ONE).getAttribute('data-dimmed')).toBeNull();
+    expect(nodeButton(SUBJECT).getAttribute('data-dimmed')).toBeNull();
+    expect(nodeButton(HOP_TWO).getAttribute('data-dimmed')).toBeNull();
+    expect(nodeButton(HOP_ONE_LOW).getAttribute('data-dimmed')).toBe('true');
+
+    expect(edgeButton('1,250').getAttribute('data-dimmed')).toBeNull();
+    expect(edgeButton('9,000').getAttribute('data-dimmed')).toBeNull();
+    expect(edgeButton('500').getAttribute('data-dimmed')).toBe('true');
+
+    fireEvent.mouseLeave(nodeButton(HOP_ONE));
+    expect(nodeButton(HOP_ONE_LOW).getAttribute('data-dimmed')).toBeNull();
+    expect(edgeButton('500').getAttribute('data-dimmed')).toBeNull();
+  });
+
+  it('reads the legend from the dictionary', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    expect(screen.getByText('Outbound · solid')).toBeTruthy();
+    expect(screen.getByText('Inbound · dashed')).toBeTruthy();
+  });
 });
 
 describe('WalletTraceGraph', () => {
@@ -464,6 +635,22 @@ describe('WalletTraceGraph', () => {
     expect(screen.getByText('Fund flow')).toBeTruthy();
     expect(
       screen.getByRole('button', { name: new RegExp(`${SUBJECT}.*subject`, 'i') }),
+    ).toBeTruthy();
+  });
+
+  it('puts the inspector before the canvas in keyboard order', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const inspector = screen.getByRole('region', {
+      name: 'Selection details',
+    });
+    const firstNode = screen.getByRole('button', {
+      name: new RegExp(`^Node ${SUBJECT},`),
+    });
+
+    expect(
+      inspector.compareDocumentPosition(firstNode) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -892,6 +1079,31 @@ describe('TraceGraphDisclosure', () => {
     ).toBeTruthy();
     expect(within(disclosure).queryByText('Within the node cap.')).toBeNull();
     expect(within(disclosure).queryByRole('note')).toBeNull();
+  });
+
+  it('does not claim a shortfall when complete coverage simply stopped early', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={{
+          ...graph.disclosure,
+          depthRequested: 5,
+          depthReached: 0,
+          nodesReturned: 1,
+          loadedTransfers: 0,
+          reportedTransfers: 0,
+          truncated: false,
+          coverage: 'complete',
+          minValueUsdt: 50_000,
+        }}
+        simulated={false}
+        language="en"
+      />,
+    );
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Coverage')).toContain('Complete');
+    expect(within(disclosure).queryByText(/^Stopped short/)).toBeNull();
   });
 
   it('marks a simulated payload in words, not colour alone', () => {

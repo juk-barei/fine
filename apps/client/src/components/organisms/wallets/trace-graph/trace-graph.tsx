@@ -1,4 +1,8 @@
 import { useEffect, useId, useState } from 'react';
+import {
+  WALLET_GRAPH_DEFAULT_DEPTH,
+  WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
+} from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
 import { useWalletGraph } from '@/lib/wallets';
 import {
@@ -26,8 +30,10 @@ export function WalletTraceGraph({
 }) {
   const headingId = useId();
   const [selection, setSelection] = useState<TraceGraphSelection | null>(null);
-  const [depth, setDepth] = useState(5);
-  const [minValueUsdt, setMinValueUsdt] = useState(0);
+  const [depth, setDepth] = useState(WALLET_GRAPH_DEFAULT_DEPTH);
+  const [minValueUsdt, setMinValueUsdt] = useState(
+    WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
+  );
   const graph = useWalletGraph(address, depth, minValueUsdt);
 
   const subjectAddress =
@@ -91,15 +97,15 @@ export function WalletTraceGraph({
         </p>
       ) : graph.data === undefined ? null : hasNeighbourhood ? (
         <>
+          <TraceGraphInspector
+            graph={graph.data}
+            selection={selection}
+            language={language}
+          />
           <TraceGraphCanvas
             graph={graph.data}
             selected={selection}
             onSelect={setSelection}
-            language={language}
-          />
-          <TraceGraphInspector
-            graph={graph.data}
-            selection={selection}
             language={language}
           />
         </>

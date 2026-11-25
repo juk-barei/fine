@@ -259,7 +259,7 @@ describe('mockTraceGraph', () => {
 
     const five = mockTraceGraph({ address: ADDRESS, depth: 5, minValueUsdt: 0 });
 
-    expect(five.nodes).toHaveLength(500);
+    expect(five.nodes.length).toBeLessThanOrEqual(500);
     expect(five.disclosure).toMatchObject({
       depthRequested: 5,
       nodesReturned: five.nodes.length,
@@ -292,10 +292,11 @@ describe('mockTraceGraph', () => {
       expect(ordered).toBe(true);
     }
 
-    // The cap lands in the deepest hop: almost every shallower wallet survives
-    // and the drop is confined to hop-five leaves with the lowest volume.
+    // The cap fills by value across hops; the reachability pass then removes
+    // the islands the ranking stranded, so the survivors are still in cap
+    // order and the deepest hop survives where its path did.
     expect(graph.nodes[0]).toMatchObject({ address: ADDRESS, subject: true });
-    expect(graph.nodes.filter((node) => node.hop < 5).length).toBeGreaterThan(300);
+    expect(graph.nodes.length).toBeGreaterThan(400);
     expect(graph.nodes.some((node) => node.hop === 5)).toBe(true);
   });
 
@@ -335,6 +336,53 @@ describe('mockTraceGraph', () => {
       reason: null,
     });
     expect(deep.disclosure.reportedTransfers).toBe(deep.edges.length);
+  });
+
+  it('drops nodes the cap left unreachable from the subject', () => {
+    // The cap keeps by value, which can strand a child whose parent it evicted.
+    // Every returned node must still be reachable from the subject.
+    for (const address of [
+      ADDRESS,
+      'TW5tokvhEfrb77z98Rc8HqbkzQJ6sxYtGX',
+    ]) {
+      const graph = mockTraceGraph({ address, depth: 5, minValueUsdt: 0 });
+
+      expect(graph.disclosure.truncated).toBe(true);
+      expect(graph.nodes.length).toBeLessThanOrEqual(500);
+      expect(graph.disclosure.nodesReturned).toBe(graph.nodes.length);
+
+      const adjacency = new Map<string, string[]>();
+      for (const edge of graph.edges) {
+        for (const [from, to] of [
+          [edge.from, edge.to],
+          [edge.to, edge.from],
+        ] as const) {
+          const list = adjacency.get(from);
+          if (list) list.push(to);
+          else adjacency.set(from, [to]);
+        }
+      }
+
+      const reached = new Set<string>([address]);
+      const queue = [address];
+      while (queue.length > 0) {
+        const current = queue.shift() as string;
+        for (const next of adjacency.get(current) ?? []) {
+          if (reached.has(next)) continue;
+          reached.add(next);
+          queue.push(next);
+        }
+      }
+
+      expect(graph.nodes).toHaveLength(reached.size);
+      for (const node of graph.nodes) {
+        expect(reached.has(node.address)).toBe(true);
+      }
+      for (const edge of graph.edges) {
+        expect(reached.has(edge.from)).toBe(true);
+        expect(reached.has(edge.to)).toBe(true);
+      }
+    }
   });
 
   it('returns an identical payload for repeated identical capped requests', () => {

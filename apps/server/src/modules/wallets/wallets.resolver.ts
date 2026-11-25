@@ -1,6 +1,10 @@
 import { Args, Float, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Inject } from '@nestjs/common';
 import { OptionalAuth, UserHasPermission } from '@thallesp/nestjs-better-auth';
+import {
+  WALLET_GRAPH_DEFAULT_DEPTH,
+  WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
+} from '@repo/contracts';
 import { runGraphQL } from '../../common/effect/run.ts';
 import { WalletsService } from './wallets.service.ts';
 import {
@@ -49,9 +53,17 @@ export class WalletsResolver {
   @Query(() => WalletTraceGraph)
   async walletGraph(
     @Args('address', { type: () => String }) address: string,
-    @Args('depth', { type: () => Int, nullable: true, defaultValue: 5 })
+    @Args('depth', {
+      type: () => Int,
+      nullable: true,
+      defaultValue: WALLET_GRAPH_DEFAULT_DEPTH,
+    })
     depth: number,
-    @Args('minValueUsdt', { type: () => Float, nullable: true, defaultValue: 0 })
+    @Args('minValueUsdt', {
+      type: () => Float,
+      nullable: true,
+      defaultValue: WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
+    })
     minValueUsdt: number,
   ): Promise<WalletTraceGraph> {
     return runGraphQL(

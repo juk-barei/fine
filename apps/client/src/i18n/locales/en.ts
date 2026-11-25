@@ -124,6 +124,9 @@ export const en = {
     tier1: 'Tier 1',
     tier2: 'Tier 2',
     tier3: 'Tier 3',
+    unscored: 'Unscored',
+    legendSolid: 'solid',
+    legendDashed: 'dashed',
     inspector: {
       band: 'Band',
       pLaundering: 'p(laundering)',
