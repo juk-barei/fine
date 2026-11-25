@@ -317,6 +317,30 @@ describe('wallet trace graph contract', () => {
 
     expect(walletTraceGraphSchema.safeParse(payload).success).toBe(false);
   });
+
+  it('accepts a label with a listing date and rejects a non-date one', () => {
+    const payload = graph();
+    payload.nodes[1] = node({
+      address: BARE,
+      hop: 1,
+      kind: 'counterparty',
+      subject: false,
+      labels: [
+        {
+          tier: 'tier_1',
+          source: 'OFAC SDN (simulated)',
+          listedAt: '2026-09-09T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(walletTraceGraphSchema.safeParse(payload).success).toBe(true);
+
+    payload.nodes[1].labels = [
+      { tier: 'tier_1', source: 'OFAC SDN (simulated)', listedAt: '9 Sep 2026' },
+    ];
+    expect(walletTraceGraphSchema.safeParse(payload).success).toBe(false);
+  });
 });
 
 describe('wallet graph input', () => {
