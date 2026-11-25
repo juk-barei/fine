@@ -61,6 +61,27 @@ describe('WalletsResolver.walletGraph', () => {
     );
   });
 
+  it('reports truncation and partial coverage at depth five honestly', async () => {
+    const { resolver } = createResolver();
+
+    const graph = await resolver.walletGraph(ADDRESS, 5, 0);
+
+    expect(walletTraceGraphSchema.safeParse(graph).success).toBe(true);
+    expect(graph.nodes).toHaveLength(500);
+    expect(graph.disclosure).toMatchObject({
+      depthRequested: 5,
+      nodesReturned: 500,
+      nodeCap: 500,
+      truncated: true,
+      coverage: 'partial',
+    });
+    expect(graph.disclosure.reason).toMatch(/cap/i);
+    expect(graph.disclosure.loadedTransfers).toBeLessThan(
+      graph.disclosure.reportedTransfers,
+    );
+    expect(await resolver.walletGraph(ADDRESS, 5, 0)).toEqual(graph);
+  });
+
   it('rejects a depth outside the allowed range', async () => {
     const { resolver } = createResolver();
 

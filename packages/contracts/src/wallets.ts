@@ -183,6 +183,13 @@ export const traceDisclosureSchema = z
         message: 'partial coverage must say why',
       });
     }
+    if (disclosure.loadedTransfers > disclosure.reportedTransfers) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['loadedTransfers'],
+        message: 'loaded transfers cannot exceed the reported transfers',
+      });
+    }
   });
 export type TraceDisclosure = z.infer<typeof traceDisclosureSchema>;
 

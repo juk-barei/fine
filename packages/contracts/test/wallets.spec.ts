@@ -278,6 +278,19 @@ describe('wallet trace graph contract', () => {
     ).toBe(false);
   });
 
+  it('rejects loaded transfers exceeding the reported transfers', () => {
+    expect(
+      traceDisclosureSchema.safeParse(
+        disclosure({ loadedTransfers: 5, reportedTransfers: 4 }),
+      ).success,
+    ).toBe(false);
+    expect(
+      traceDisclosureSchema.safeParse(
+        disclosure({ loadedTransfers: 4, reportedTransfers: 4 }),
+      ).success,
+    ).toBe(true);
+  });
+
   it('requires exactly one subject at hop 0 with kind "subject"', () => {
     const none = graph();
     none.nodes[0] = node({ subject: false, kind: 'counterparty' });

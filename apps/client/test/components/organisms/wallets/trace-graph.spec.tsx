@@ -773,6 +773,32 @@ describe('WalletTraceGraph', () => {
     ).toContain('Simulated data');
   });
 
+  it('states truncation and partial coverage when the graph stopped short', () => {
+    mockedHook.mockReturnValue({
+      data: { ...graph, disclosure: truncatedDisclosure },
+      isLoading: false,
+      error: null,
+    } as never);
+
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Coverage')).toContain('Partial');
+    expect(within(disclosure).getByText('1,200 of 2,400 transfers')).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Node cap reached — the trace stopped at the cap.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Reason: Index covers half of the reported transfers.',
+      ),
+    ).toBeTruthy();
+    expect(within(disclosure).queryByText('Within the node cap.')).toBeNull();
+  });
+
   it('shows a loading state while the query runs', () => {
     mockedHook.mockReturnValue({
       data: undefined,
