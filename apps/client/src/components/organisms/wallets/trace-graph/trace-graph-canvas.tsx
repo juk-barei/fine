@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type KeyboardEvent } from 'react';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import type {
   LabelTier,
@@ -26,8 +26,11 @@ function edgeLabel(edge: TraceEdge, language: SupportedLanguage): string {
     edge.direction === 'inbound'
       ? t(language, (dictionary) => dictionary.traceGraph.inbound)
       : t(language, (dictionary) => dictionary.traceGraph.outbound);
+  const from = t(language, (dictionary) => dictionary.traceGraph.from);
+  const to = t(language, (dictionary) => dictionary.traceGraph.to);
+  const hop = t(language, (dictionary) => dictionary.traceGraph.hop);
 
-  return `${t(language, (dictionary) => dictionary.traceGraph.transferOf)} ${edge.amountUsdt.toLocaleString()} USDT, ${direction}`;
+  return `${t(language, (dictionary) => dictionary.traceGraph.transferOf)} ${edge.amountUsdt.toLocaleString()} USDT, ${from} ${edge.from}, ${to} ${edge.to}, ${hop} ${edge.hop}, ${direction}`;
 }
 
 function nodeLabel(
@@ -40,6 +43,47 @@ function nodeLabel(
     : '';
 
   return `${t(language, (dictionary) => dictionary.traceGraph.node)} ${node.address}, ${hop} ${node.hop}${subject}`;
+}
+
+/**
+ * What the live region reads out when the selection changes: the same label the
+ * control carries, plus the fact that the details opened.
+ */
+function selectionAnnouncement(
+  graph: WalletTraceGraph,
+  selection: TraceGraphSelection | null,
+  language: SupportedLanguage,
+): string {
+  if (selection === null) return '';
+
+  let subject: string;
+  if (selection.kind === 'node') {
+    const node = graph.nodes.find(
+      (candidate) => candidate.address === selection.address,
+    );
+    if (node === undefined) return '';
+    subject = nodeLabel(node, language);
+  } else {
+    const edge = graph.edges.find((candidate) => candidate.id === selection.id);
+    if (edge === undefined) return '';
+    subject = edgeLabel(edge, language);
+  }
+
+  return `${subject}. ${t(
+    language,
+    (dictionary) => dictionary.traceGraph.a11y.selectionAnnouncement,
+  )}`;
+}
+
+/** Enter and Space activate a control, matching native button behaviour. */
+function activateOnKey(
+  event: KeyboardEvent<HTMLElement | SVGGElement>,
+  activate: () => void,
+) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+
+  event.preventDefault();
+  activate();
 }
 
 function NodeCard({
@@ -60,9 +104,10 @@ function NodeCard({
     <button
       type="button"
       onClick={onSelect}
+      onKeyDown={(event) => activateOnKey(event, onSelect)}
       aria-label={nodeLabel(node, language)}
       aria-pressed={selected}
-      className={`flex h-full w-full flex-col items-start justify-center gap-0.5 rounded-xl border bg-background px-3 py-1.5 text-left ${bandBadge[band]} ${
+      className={`flex h-full w-full flex-col items-start justify-center gap-0.5 rounded-xl border bg-background px-3 py-1.5 text-left outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${bandBadge[band]} ${
         node.subject
           ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background'
           : ''
@@ -106,7 +151,10 @@ export function TraceGraphCanvas({
   language: SupportedLanguage;
 }) {
   const [zoom, setZoom] = useState(1);
-  const markerId = `trace-arrow-${useId().replace(/:/g, '')}`;
+  const [focusedEdgeId, setFocusedEdgeId] = useState<string | null>(null);
+  const generatedId = useId().replace(/:/g, '');
+  const markerId = `trace-arrow-${generatedId}`;
+  const instructionsId = `trace-instructions-${generatedId}`;
   const layout = layoutTraceGraph(graph.nodes);
   const positionByAddress = new Map(
     layout.nodes.map((position) => [position.address, position]),
@@ -156,6 +204,10 @@ export function TraceGraphCanvas({
         </button>
       </div>
 
+      <p id={instructionsId} className="sr-only">
+        {t(language, (dictionary) => dictionary.traceGraph.a11y.instructions)}
+      </p>
+
       <div className="mt-2 overflow-auto rounded-xl border bg-muted/10">
         <svg
           role="group"
@@ -163,6 +215,7 @@ export function TraceGraphCanvas({
             language,
             (dictionary) => dictionary.traceGraph.graphLabel,
           )}
+          aria-describedby={instructionsId}
           width={layout.width * zoom}
           height={layout.height * zoom}
           viewBox={`0 0 ${layout.width} ${layout.height}`}
@@ -188,6 +241,8 @@ export function TraceGraphCanvas({
 
             const isSelected =
               selected?.kind === 'edge' && selected.id === edge.id;
+            const isFocused = focusedEdgeId === edge.id;
+            const label = edgeLabel(edge, language);
             const x1 = from.x + from.width / 2;
             const y1 = from.y + from.height / 2;
             const x2 = to.x + to.width / 2;
@@ -198,12 +253,32 @@ export function TraceGraphCanvas({
                 key={edge.id}
                 role="button"
                 tabIndex={0}
-                aria-label={edgeLabel(edge, language)}
+                aria-label={label}
                 aria-pressed={isSelected}
+                data-focused={isFocused ? 'true' : undefined}
                 onClick={() => onSelect({ kind: 'edge', id: edge.id })}
-                className="cursor-pointer"
+                onKeyDown={(event) =>
+                  activateOnKey(event, () =>
+                    onSelect({ kind: 'edge', id: edge.id }),
+                  )
+                }
+                onFocus={() => setFocusedEdgeId(edge.id)}
+                onBlur={() => setFocusedEdgeId(null)}
+                className="cursor-pointer outline-none"
               >
-                <title>{edgeLabel(edge, language)}</title>
+                <title>{label}</title>
+                {/* Focus is drawn as a halo, since SVG groups have no outline. */}
+                {isFocused ? (
+                  <line
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    strokeWidth={isSelected ? 10 : 8}
+                    strokeLinecap="round"
+                    className="stroke-foreground/40"
+                  />
+                ) : null}
                 <line
                   x1={x1}
                   y1={y1}
@@ -268,6 +343,15 @@ export function TraceGraphCanvas({
         <span>
           {t(language, (dictionary) => dictionary.traceGraph.inbound)} · dashed
         </span>
+      </p>
+
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {selectionAnnouncement(graph, selected, language)}
       </p>
     </div>
   );

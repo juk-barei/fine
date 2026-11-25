@@ -124,6 +124,11 @@ export const en = {
     tier1: 'Tier 1',
     tier2: 'Tier 2',
     tier3: 'Tier 3',
+    a11y: {
+      instructions:
+        'Use Tab to move between nodes and transfers, then Enter or Space to open the selection details.',
+      selectionAnnouncement: 'Selection details opened.',
+    },
   },
   unsavedChanges: {
     title: 'Discard Unsaved Changes?',
