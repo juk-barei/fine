@@ -53,9 +53,18 @@ const nodes: TraceNode[] = [
     address: HOP_ONE,
     hop: 1,
     subject: false,
-    band: 'moderate',
+    band: 'high',
+    pLaundering: 0.83,
+    confidence: 'medium',
     volumeUsdt: 4_000,
     intermediary: 'pass_through',
+    labels: [
+      {
+        tier: 'tier_1',
+        source: 'OFAC SDN (simulated)',
+        listedAt: '2026-09-09T00:00:00.000Z',
+      },
+    ],
   }),
   node({
     address: HOP_ONE_LOW,
@@ -374,6 +383,83 @@ describe('WalletTraceGraph', () => {
     expect(within(inspector).getByText('b'.repeat(64))).toBeTruthy();
     expect(within(inspector).getByText(HOP_ONE)).toBeTruthy();
     expect(within(inspector).getByText(HOP_TWO)).toBeTruthy();
+  });
+
+  it('explains a labelled intermediary node in the product vocabulary', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(HOP_ONE) }),
+    );
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+
+    expect(within(inspector).getByText(HOP_ONE)).toBeTruthy();
+    expect(within(inspector).getByText('Band')).toBeTruthy();
+    const band = within(inspector).getByText('High');
+    expect(band.className).toContain('text-destructive');
+    expect(within(inspector).getByText('p(laundering)')).toBeTruthy();
+    expect(within(inspector).getByText('Confidence')).toBeTruthy();
+    expect(within(inspector).getByText('Medium')).toBeTruthy();
+    expect(within(inspector).getByText('0.83')).toBeTruthy();
+    expect(within(inspector).getByText('Hop')).toBeTruthy();
+    expect(within(inspector).getByText('1')).toBeTruthy();
+    expect(within(inspector).getByText('Volume traced')).toBeTruthy();
+    expect(within(inspector).getByText('4,000 USDT')).toBeTruthy();
+    expect(within(inspector).getByText('Intermediary')).toBeTruthy();
+    expect(within(inspector).getByText('Pass-through')).toBeTruthy();
+    expect(within(inspector).getByText('Tier 1')).toBeTruthy();
+    expect(within(inspector).getByText('OFAC SDN (simulated)')).toBeTruthy();
+    expect(within(inspector).getByText('2026-09-09')).toBeTruthy();
+  });
+
+  it('explains an unlabelled node without inventing a label', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(HOP_TWO) }),
+    );
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+
+    expect(within(inspector).getByText('No label')).toBeTruthy();
+    expect(within(inspector).queryByText('Tier 1')).toBeNull();
+    expect(within(inspector).queryByText('Tier 2')).toBeNull();
+    expect(within(inspector).getByText('0.10')).toBeTruthy();
+    expect(within(inspector).getByText('Intermediary')).toBeTruthy();
+  });
+
+  it('lists R1 to R6 with their triggered status and no invented codes', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(HOP_ONE) }),
+    );
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+    const codes = within(inspector)
+      .getAllByText(/^R[1-6]$/)
+      .map((element) => element.textContent);
+
+    expect(codes).toEqual(['R1', 'R2', 'R3', 'R4', 'R5', 'R6']);
+    expect(within(inspector).getByText('R1 summary')).toBeTruthy();
+    expect(within(inspector).getByText('Triggered')).toBeTruthy();
+    expect(within(inspector).getAllByText('Not triggered')).toHaveLength(5);
+    expect(document.body.textContent).not.toMatch(/FR[-\s]?\d/);
+  });
+
+  it('shows amount, hash, timestamp and direction when a transfer is selected', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Transfer.*9,000/ }));
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+
+    expect(within(inspector).getByText('9,000 USDT')).toBeTruthy();
+    expect(within(inspector).getByText('b'.repeat(64))).toBeTruthy();
+    expect(within(inspector).getByText('2026-11-12 08:10:00 UTC')).toBeTruthy();
+    expect(within(inspector).getByText('Direction')).toBeTruthy();
+    expect(within(inspector).getByText('Outbound')).toBeTruthy();
   });
 
   it('shows an empty state when the wallet has no traced neighbourhood', () => {
