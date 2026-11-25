@@ -182,7 +182,7 @@ describe('TraceGraphCanvas', () => {
     expect(within(subject).getByText('Subject')).toBeTruthy();
 
     const counterparty = screen.getByRole('button', {
-      name: new RegExp(HOP_ONE),
+      name: new RegExp(`^Node ${HOP_ONE}`),
     });
     expect(within(counterparty).queryByText('Subject')).toBeNull();
   });
@@ -222,7 +222,7 @@ describe('TraceGraphCanvas', () => {
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: new RegExp(HOP_ONE) }),
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_ONE}`) }),
     );
 
     expect(onSelect).toHaveBeenCalledWith({ kind: 'node', address: HOP_ONE });
@@ -242,6 +242,207 @@ describe('TraceGraphCanvas', () => {
     fireEvent.click(screen.getByRole('button', { name: /Transfer.*1,250/ }));
 
     expect(onSelect).toHaveBeenCalledWith({ kind: 'edge', id: 'edge-1' });
+  });
+
+  it('exposes the graph as a labelled group with keyboard instructions', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const group = screen.getByRole('group', { name: 'Wallet trace graph' });
+    expect(group.tagName.toLowerCase()).toBe('svg');
+    expect(screen.queryByRole('img')).toBeNull();
+
+    const describedBy = group.getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy ?? '')?.textContent).toContain(
+      'Tab',
+    );
+  });
+
+  it('announces every node with its address and hop', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const cases: Array<[string, number]> = [
+      [SUBJECT, 0],
+      [HOP_ONE, 1],
+      [HOP_ONE_LOW, 1],
+      [HOP_TWO, 2],
+    ];
+
+    for (const [address, hop] of cases) {
+      const label =
+        screen
+          .getByRole('button', { name: new RegExp(`^Node ${address}`) })
+          .getAttribute('aria-label') ?? '';
+
+      expect(label).toContain(address);
+      expect(label).toContain(`Hop ${hop}`);
+    }
+  });
+
+  it('announces every transfer with its amount, endpoints and hop', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const cases = [
+      { amount: '1,250', from: SUBJECT, to: HOP_ONE, hop: 1 },
+      { amount: '9,000', from: HOP_ONE, to: HOP_TWO, hop: 2 },
+      { amount: '500', from: HOP_ONE_LOW, to: SUBJECT, hop: 1 },
+    ];
+
+    for (const item of cases) {
+      const label =
+        screen
+          .getByRole('button', {
+            name: new RegExp(`^Transfer of ${item.amount} USDT`),
+          })
+          .getAttribute('aria-label') ?? '';
+
+      expect(label).toContain(item.from);
+      expect(label).toContain(item.to);
+      expect(label).toContain(`Hop ${item.hop}`);
+    }
+  });
+
+  it('keeps every transfer in the tab order', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const transfers = screen.getAllByRole('button', {
+      name: /^Transfer of/,
+    });
+    expect(transfers).toHaveLength(edges.length);
+
+    for (const transfer of transfers) {
+      expect(transfer.getAttribute('tabindex')).toBe('0');
+    }
+  });
+
+  it('selects a node with Enter', () => {
+    const onSelect = vi.fn();
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={onSelect}
+        language="en"
+      />,
+    );
+
+    const nodeButton = screen.getByRole('button', {
+      name: new RegExp(`^Node ${HOP_ONE}`),
+    });
+    nodeButton.focus();
+    fireEvent.keyDown(nodeButton, { key: 'Enter' });
+
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'node', address: HOP_ONE });
+  });
+
+  it('selects a node with Space', () => {
+    const onSelect = vi.fn();
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={onSelect}
+        language="en"
+      />,
+    );
+
+    const nodeButton = screen.getByRole('button', {
+      name: new RegExp(`^Node ${HOP_TWO}`),
+    });
+    nodeButton.focus();
+    fireEvent.keyDown(nodeButton, { key: ' ' });
+
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'node', address: HOP_TWO });
+  });
+
+  it('selects a transfer with Enter', () => {
+    const onSelect = vi.fn();
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={onSelect}
+        language="en"
+      />,
+    );
+
+    const transfer = screen.getByRole('button', {
+      name: /^Transfer of 1,250 USDT/,
+    });
+    transfer.focus();
+    fireEvent.keyDown(transfer, { key: 'Enter' });
+
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'edge', id: 'edge-1' });
+  });
+
+  it('selects a transfer with Space', () => {
+    const onSelect = vi.fn();
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={onSelect}
+        language="en"
+      />,
+    );
+
+    const transfer = screen.getByRole('button', {
+      name: /^Transfer of 9,000 USDT/,
+    });
+    transfer.focus();
+    fireEvent.keyDown(transfer, { key: ' ' });
+
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'edge', id: 'edge-2' });
+  });
+
+  it('marks a focused transfer so its focus is visible', () => {
+    render(
+      <TraceGraphCanvas
+        graph={graph}
+        selected={null}
+        onSelect={noop}
+        language="en"
+      />,
+    );
+
+    const transfer = screen.getByRole('button', {
+      name: /^Transfer of 9,000 USDT/,
+    });
+    expect(transfer.getAttribute('data-focused')).toBeNull();
+
+    fireEvent.focus(transfer);
+    expect(transfer.getAttribute('data-focused')).toBe('true');
+
+    fireEvent.blur(transfer);
+    expect(transfer.getAttribute('data-focused')).toBeNull();
   });
 });
 
@@ -276,7 +477,7 @@ describe('WalletTraceGraph', () => {
     render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: new RegExp(HOP_TWO) }),
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_TWO}`) }),
     );
 
     const inspector = screen.getByRole('region', { name: 'Selection details' });
@@ -284,6 +485,68 @@ describe('WalletTraceGraph', () => {
     expect(within(inspector).getByText('2')).toBeTruthy();
     expect(within(inspector).getByText('Address')).toBeTruthy();
     expect(within(inspector).getByText('Hop')).toBeTruthy();
+  });
+
+  it('opens a node inspector with Enter on the focused node', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const nodeButton = screen.getByRole('button', {
+      name: new RegExp(`^Node ${HOP_TWO}`),
+    });
+    nodeButton.focus();
+    expect(document.activeElement).toBe(nodeButton);
+    fireEvent.keyDown(nodeButton, { key: 'Enter' });
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+    expect(within(inspector).getByText(HOP_TWO)).toBeTruthy();
+    expect(within(inspector).getByText('Hop')).toBeTruthy();
+  });
+
+  it('opens a transfer inspector with Space on the focused transfer', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const transfer = screen.getByRole('button', {
+      name: /^Transfer of 9,000 USDT/,
+    });
+    transfer.focus();
+    fireEvent.keyDown(transfer, { key: ' ' });
+
+    const inspector = screen.getByRole('region', { name: 'Selection details' });
+    expect(within(inspector).getByText('9,000 USDT')).toBeTruthy();
+    expect(within(inspector).getByText('b'.repeat(64))).toBeTruthy();
+  });
+
+  it('announces a keyboard selection in a live region', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const status = screen.getByRole('status');
+    expect(status.getAttribute('aria-live')).toBe('polite');
+    expect(status.textContent).toBe('');
+
+    const nodeButton = screen.getByRole('button', {
+      name: new RegExp(`^Node ${HOP_TWO}`),
+    });
+    nodeButton.focus();
+    fireEvent.keyDown(nodeButton, { key: 'Enter' });
+
+    expect(status.textContent).toContain(HOP_TWO);
+    expect(status.textContent).toContain('Hop 2');
+    expect(status.textContent).toContain('Selection details opened');
+  });
+
+  it('announces a keyboard-selected transfer in the live region', () => {
+    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
+
+    const transfer = screen.getByRole('button', {
+      name: /^Transfer of 1,250 USDT/,
+    });
+    transfer.focus();
+    fireEvent.keyDown(transfer, { key: 'Enter' });
+
+    const status = screen.getByRole('status');
+    expect(status.textContent).toContain('1,250');
+    expect(status.textContent).toContain(SUBJECT);
+    expect(status.textContent).toContain(HOP_ONE);
   });
 
   it('shows amount, transaction and timestamp when a transfer is selected', () => {
@@ -302,7 +565,7 @@ describe('WalletTraceGraph', () => {
     render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: new RegExp(HOP_ONE) }),
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_ONE}`) }),
     );
 
     const inspector = screen.getByRole('region', { name: 'Selection details' });
@@ -330,7 +593,7 @@ describe('WalletTraceGraph', () => {
     render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: new RegExp(HOP_TWO) }),
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_TWO}`) }),
     );
 
     const inspector = screen.getByRole('region', { name: 'Selection details' });
@@ -346,7 +609,7 @@ describe('WalletTraceGraph', () => {
     render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: new RegExp(HOP_ONE) }),
+      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_ONE}`) }),
     );
 
     const inspector = screen.getByRole('region', { name: 'Selection details' });

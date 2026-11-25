@@ -171,6 +171,11 @@ export const km: TranslationSchema = {
       simulated: 'Simulated data',
       simulatedHint: 'Synthetic fixture, not chain evidence.',
     },
+    a11y: {
+      instructions:
+        'Use Tab to move between nodes and transfers, then Enter or Space to open the selection details.',
+      selectionAnnouncement: 'Selection details opened.',
+    },
   },
   unsavedChanges: {
     title: 'បោះបង់ការផ្លាស់ប្តូរដែលមិនបានរក្សាទុក?',
