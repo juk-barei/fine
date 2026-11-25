@@ -35,8 +35,11 @@ export function TraceGraphDisclosure({
   language: SupportedLanguage;
 }) {
   const partial = disclosure.coverage === 'partial';
+  // A complete trace may legitimately stop before the requested depth (a high
+  // minimum value can leave only the subject); only a partial trace stopped
+  // short of what was asked.
   const shortOfRequestedDepth =
-    disclosure.depthReached < disclosure.depthRequested;
+    partial && disclosure.depthReached < disclosure.depthRequested;
 
   return (
     <div

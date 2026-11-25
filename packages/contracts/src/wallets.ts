@@ -248,10 +248,20 @@ export const walletTraceGraphSchema = z
   });
 export type WalletTraceGraph = z.infer<typeof walletTraceGraphSchema>;
 
+/**
+ * The trace graph's documented defaults. Declared once here so the contract,
+ * the server's resolver and the client's hook and controls cannot drift.
+ */
+export const WALLET_GRAPH_DEFAULT_DEPTH = 5;
+export const WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT = 0;
+
 export const walletGraphInputSchema = z.object({
   address: tronAddressSchema,
-  depth: z.number().int().min(1).max(5).default(5),
-  minValueUsdt: z.number().min(0).default(0),
+  depth: z.number().int().min(1).max(5).default(WALLET_GRAPH_DEFAULT_DEPTH),
+  minValueUsdt: z
+    .number()
+    .min(0)
+    .default(WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT),
 });
 export type WalletGraphInput = z.infer<typeof walletGraphInputSchema>;
 

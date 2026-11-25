@@ -183,9 +183,11 @@ function WalletDetailView({
           </dl>
         </section>
 
-        <section className="mt-6 border-t pt-6">
-          <WalletTraceGraph address={wallet.address} language={language} />
-        </section>
+        {score !== null ? (
+          <section className="mt-6 border-t pt-6">
+            <WalletTraceGraph address={wallet.address} language={language} />
+          </section>
+        ) : null}
 
         <section className="mt-6 border-t pt-6">
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">

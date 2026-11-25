@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  WALLET_GRAPH_DEFAULT_DEPTH,
+  WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
   walletDetailSchema,
   walletPageSchema,
   walletScreeningSchema,
@@ -162,8 +164,8 @@ const WALLET_GRAPH_QUERY = `
  */
 export function useWalletGraph(
   address: string | null,
-  depth = 5,
-  minValueUsdt = 0,
+  depth = WALLET_GRAPH_DEFAULT_DEPTH,
+  minValueUsdt = WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
 ) {
   return useQuery({
     queryKey: ['wallet-graph', address, depth, minValueUsdt],

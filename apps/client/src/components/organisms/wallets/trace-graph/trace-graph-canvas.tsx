@@ -4,6 +4,7 @@ import type {
   LabelTier,
   TraceEdge,
   TraceNode,
+  WalletBand,
   WalletTraceGraph,
 } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
@@ -15,10 +16,22 @@ export type TraceGraphSelection =
   | { kind: 'node'; address: string }
   | { kind: 'edge'; id: string };
 
+/** A bounded viewport keeps a depth-five graph from stretching the page. */
+const CANVAS_VIEWPORT_HEIGHT = 560;
+
+/** A node without a band is not "low": it is simply not scored. */
+const NEUTRAL_BAND = 'border-border bg-muted/40 text-muted-foreground';
+
 const TIER_KEY: Record<LabelTier, 'tier1' | 'tier2' | 'tier3'> = {
   tier_1: 'tier1',
   tier_2: 'tier2',
   tier_3: 'tier3',
+};
+
+const BAND_KEY: Record<WalletBand, 'bandHigh' | 'bandModerate' | 'bandLow'> = {
+  high: 'bandHigh',
+  moderate: 'bandModerate',
+  low: 'bandLow',
 };
 
 function edgeLabel(edge: TraceEdge, language: SupportedLanguage): string {
@@ -38,11 +51,30 @@ function nodeLabel(
   language: SupportedLanguage,
 ): string {
   const hop = t(language, (dictionary) => dictionary.traceGraph.hop);
+  const bandLabel = t(
+    language,
+    (dictionary) => dictionary.traceGraph.inspector.band,
+  );
+  const nodeBand = node.band;
+  const bandValue =
+    nodeBand === null
+      ? t(language, (dictionary) => dictionary.traceGraph.unscored)
+      : t(
+          language,
+          (dictionary) => dictionary.traceGraph.inspector[BAND_KEY[nodeBand]],
+        );
+  const label = node.labels[0];
+  const tier = label
+    ? `, ${t(
+        language,
+        (dictionary) => dictionary.traceGraph[TIER_KEY[label.tier]],
+      )}`
+    : '';
   const subject = node.subject
     ? `, ${t(language, (dictionary) => dictionary.traceGraph.subject).toLowerCase()}`
     : '';
 
-  return `${t(language, (dictionary) => dictionary.traceGraph.node)} ${node.address}, ${hop} ${node.hop}${subject}`;
+  return `${t(language, (dictionary) => dictionary.traceGraph.node)} ${node.address}, ${hop} ${node.hop}, ${bandLabel} ${bandValue}${tier}${subject}`;
 }
 
 /**
@@ -89,29 +121,35 @@ function activateOnKey(
 function NodeCard({
   node,
   selected,
+  dimmed,
   language,
   onSelect,
+  onHover,
 }: {
   node: TraceNode;
   selected: boolean;
+  dimmed: boolean;
   language: SupportedLanguage;
   onSelect: () => void;
+  onHover: (hovered: boolean) => void;
 }) {
-  const band = node.band ?? 'low';
-  const tier = node.labels[0]
+  const tier = node.labels[0];
 
   return (
     <button
       type="button"
       onClick={onSelect}
       onKeyDown={(event) => activateOnKey(event, onSelect)}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
       aria-label={nodeLabel(node, language)}
       aria-pressed={selected}
-      className={`flex h-full w-full flex-col items-start justify-center gap-0.5 rounded-xl border bg-background px-3 py-1.5 text-left outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${bandBadge[band]} ${
+      data-dimmed={dimmed ? 'true' : undefined}
+      className={`flex h-full w-full flex-col items-start justify-center gap-0.5 rounded-xl border bg-background px-3 py-1.5 text-left outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-opacity ${node.band ? bandBadge[node.band] : NEUTRAL_BAND} ${
         node.subject
           ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background'
           : ''
-      } ${selected ? 'shadow-md' : ''}`}
+      } ${selected ? 'shadow-md' : ''} ${dimmed ? 'opacity-30' : ''}`}
     >
       <span className="flex w-full items-center gap-1.5 text-[11px] font-semibold">
         <TraceNodeIcon kind={node.kind} className="h-3.5 w-3.5 shrink-0" />
@@ -119,6 +157,11 @@ function NodeCard({
       </span>
       <span className="flex w-full items-center justify-between gap-1 text-[9px] uppercase tracking-wider opacity-70">
         <span className="truncate">{node.kind.replace('_', ' ')}</span>
+        {node.badge ? (
+          <span className="shrink-0 rounded-sm bg-foreground/10 px-1 font-semibold">
+            {node.badge}
+          </span>
+        ) : null}
         {tier ? (
           <span className="shrink-0 font-semibold">
             {t(language, (dictionary) => dictionary.traceGraph[TIER_KEY[tier.tier]])}
@@ -152,6 +195,7 @@ export function TraceGraphCanvas({
 }) {
   const [zoom, setZoom] = useState(1);
   const [focusedEdgeId, setFocusedEdgeId] = useState<string | null>(null);
+  const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const generatedId = useId().replace(/:/g, '');
   const markerId = `trace-arrow-${generatedId}`;
   const instructionsId = `trace-instructions-${generatedId}`;
@@ -162,6 +206,16 @@ export function TraceGraphCanvas({
   const nodeByAddress = new Map(
     graph.nodes.map((node) => [node.address, node]),
   );
+
+  // Hovering a node keeps the node and its immediate neighbours bright and
+  // dims the rest, so one thread can be followed through a dense graph.
+  const neighbours = new Set<string>();
+  if (hoveredAddress !== null) {
+    for (const edge of graph.edges) {
+      if (edge.from === hoveredAddress) neighbours.add(edge.to);
+      else if (edge.to === hoveredAddress) neighbours.add(edge.from);
+    }
+  }
 
   const zoomBy = (step: number) => {
     setZoom((current) =>
@@ -208,7 +262,10 @@ export function TraceGraphCanvas({
         {t(language, (dictionary) => dictionary.traceGraph.a11y.instructions)}
       </p>
 
-      <div className="mt-2 overflow-auto rounded-xl border bg-muted/10">
+      <div
+        className="mt-2 overflow-auto rounded-xl border bg-muted/10"
+        style={{ maxHeight: CANVAS_VIEWPORT_HEIGHT }}
+      >
         <svg
           role="group"
           aria-label={t(
@@ -242,6 +299,10 @@ export function TraceGraphCanvas({
             const isSelected =
               selected?.kind === 'edge' && selected.id === edge.id;
             const isFocused = focusedEdgeId === edge.id;
+            const dimmed =
+              hoveredAddress !== null &&
+              edge.from !== hoveredAddress &&
+              edge.to !== hoveredAddress;
             const label = edgeLabel(edge, language);
             const x1 = from.x + from.width / 2;
             const y1 = from.y + from.height / 2;
@@ -264,7 +325,8 @@ export function TraceGraphCanvas({
                 }
                 onFocus={() => setFocusedEdgeId(edge.id)}
                 onBlur={() => setFocusedEdgeId(null)}
-                className="cursor-pointer outline-none"
+                data-dimmed={dimmed ? 'true' : undefined}
+                className={`cursor-pointer outline-none transition-opacity ${dimmed ? 'opacity-20' : ''}`}
               >
                 <title>{label}</title>
                 {/* Focus is drawn as a halo, since SVG groups have no outline. */}
@@ -325,9 +387,17 @@ export function TraceGraphCanvas({
                     selected?.kind === 'node' &&
                     selected.address === node.address
                   }
+                  dimmed={
+                    hoveredAddress !== null &&
+                    node.address !== hoveredAddress &&
+                    !neighbours.has(node.address)
+                  }
                   language={language}
                   onSelect={() =>
                     onSelect({ kind: 'node', address: node.address })
+                  }
+                  onHover={(hovered) =>
+                    setHoveredAddress(hovered ? node.address : null)
                   }
                 />
               </foreignObject>
@@ -338,10 +408,12 @@ export function TraceGraphCanvas({
 
       <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[10px] text-muted-foreground">
         <span>
-          {t(language, (dictionary) => dictionary.traceGraph.outbound)} · solid
+          {t(language, (dictionary) => dictionary.traceGraph.outbound)} ·{' '}
+          {t(language, (dictionary) => dictionary.traceGraph.legendSolid)}
         </span>
         <span>
-          {t(language, (dictionary) => dictionary.traceGraph.inbound)} · dashed
+          {t(language, (dictionary) => dictionary.traceGraph.inbound)} ·{' '}
+          {t(language, (dictionary) => dictionary.traceGraph.legendDashed)}
         </span>
       </p>
 
