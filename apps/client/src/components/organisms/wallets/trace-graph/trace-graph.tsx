@@ -5,6 +5,7 @@ import {
   TraceGraphCanvas,
   type TraceGraphSelection,
 } from './trace-graph-canvas';
+import { TraceGraphDisclosure } from './trace-graph-disclosure';
 import { TraceGraphInspector } from './trace-graph-inspector';
 
 /**
@@ -34,22 +35,20 @@ export function WalletTraceGraph({
 
   return (
     <section aria-labelledby={headingId}>
-      <div className="flex items-baseline justify-between gap-2">
-        <h2
-          id={headingId}
-          className="text-xs uppercase tracking-[0.14em] text-muted-foreground"
-        >
-          {t(language, (dictionary) => dictionary.traceGraph.heading)}
-        </h2>
-        {graph.data ? (
-          <p className="text-[10px] text-muted-foreground">
-            {graph.data.nodes.length}{' '}
-            {t(language, (dictionary) => dictionary.traceGraph.nodes)} ·{' '}
-            {graph.data.edges.length}{' '}
-            {t(language, (dictionary) => dictionary.traceGraph.transfers)}
-          </p>
-        ) : null}
-      </div>
+      <h2
+        id={headingId}
+        className="text-xs uppercase tracking-[0.14em] text-muted-foreground"
+      >
+        {t(language, (dictionary) => dictionary.traceGraph.heading)}
+      </h2>
+
+      {graph.data ? (
+        <TraceGraphDisclosure
+          disclosure={graph.data.disclosure}
+          simulated={graph.data.simulated}
+          language={language}
+        />
+      ) : null}
 
       {graph.isLoading ? (
         <p className="mt-3 text-sm text-muted-foreground">
