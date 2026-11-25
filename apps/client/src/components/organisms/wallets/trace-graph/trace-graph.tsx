@@ -1,32 +1,54 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { t, type SupportedLanguage } from '@/i18n';
 import { useWalletGraph } from '@/lib/wallets';
 import {
   TraceGraphCanvas,
   type TraceGraphSelection,
 } from './trace-graph-canvas';
+import { TraceGraphControls } from './trace-graph-controls';
 import { TraceGraphDisclosure } from './trace-graph-disclosure';
 import { TraceGraphInspector } from './trace-graph-inspector';
 
 /**
- * The fund-flow section: the loaded multi-hop graph, its selection state and
- * the inspector. Depth and minimum value are the server's inputs, so the
- * canvas never filters a payload client-side.
+ * The fund-flow section: the loaded multi-hop graph, its selection state, the
+ * inspector and the trace controls. Depth and minimum value are the server's
+ * inputs, so changing them re-queries the graph alone — the wallet's score
+ * comes from its own query — and the canvas never filters a payload
+ * client-side. A selection survives a re-query while its node or transfer is
+ * still in the payload; otherwise it falls back to the subject.
  */
 export function WalletTraceGraph({
   address,
   language = 'en',
-  depth = 5,
-  minValueUsdt = 0,
 }: {
   address: string;
   language?: SupportedLanguage;
-  depth?: number;
-  minValueUsdt?: number;
 }) {
   const headingId = useId();
   const [selection, setSelection] = useState<TraceGraphSelection | null>(null);
+  const [depth, setDepth] = useState(5);
+  const [minValueUsdt, setMinValueUsdt] = useState(0);
   const graph = useWalletGraph(address, depth, minValueUsdt);
+
+  const subjectAddress =
+    graph.data?.nodes.find((node) => node.subject)?.address ?? null;
+
+  useEffect(() => {
+    if (graph.data === undefined || selection === null) return;
+
+    const survives =
+      selection.kind === 'node'
+        ? graph.data.nodes.some((node) => node.address === selection.address)
+        : graph.data.edges.some((edge) => edge.id === selection.id);
+
+    if (survives) return;
+
+    setSelection(
+      subjectAddress === null
+        ? null
+        : { kind: 'node', address: subjectAddress },
+    );
+  }, [graph.data, selection, subjectAddress]);
 
   const hasNeighbourhood =
     graph.data !== undefined &&
@@ -35,12 +57,21 @@ export function WalletTraceGraph({
 
   return (
     <section aria-labelledby={headingId}>
-      <h2
-        id={headingId}
-        className="text-xs uppercase tracking-[0.14em] text-muted-foreground"
-      >
-        {t(language, (dictionary) => dictionary.traceGraph.heading)}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2
+          id={headingId}
+          className="text-xs uppercase tracking-[0.14em] text-muted-foreground"
+        >
+          {t(language, (dictionary) => dictionary.traceGraph.heading)}
+        </h2>
+        <TraceGraphControls
+          depth={depth}
+          minValueUsdt={minValueUsdt}
+          onDepthChange={setDepth}
+          onMinimumValueChange={setMinValueUsdt}
+          language={language}
+        />
+      </div>
 
       {graph.data ? (
         <TraceGraphDisclosure
