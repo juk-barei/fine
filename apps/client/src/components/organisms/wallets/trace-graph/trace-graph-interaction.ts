@@ -1,6 +1,6 @@
 import type { TraceEdge, TraceNode, WalletTraceGraph } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
-import { bandLabel, tierLabel } from '../vocabulary';
+import { bandLabel, formatUsdt, tierLabel } from '../vocabulary';
 
 /**
  * What the inspector shows and the canvas highlights: one node address or one
@@ -126,7 +126,7 @@ export function edgeSentence(
   const to = t(language, (dictionary) => dictionary.traceGraph.to);
   const hop = t(language, (dictionary) => dictionary.traceGraph.hop);
 
-  return `${t(language, (dictionary) => dictionary.traceGraph.transferOf)} ${edge.amountUsdt.toLocaleString()} USDT, ${from} ${edge.from}, ${to} ${edge.to}, ${hop} ${edge.hop}, ${direction}`;
+  return `${t(language, (dictionary) => dictionary.traceGraph.transferOf)} ${formatUsdt(edge.amountUsdt)}, ${from} ${edge.from}, ${to} ${edge.to}, ${hop} ${edge.hop}, ${direction}`;
 }
 
 /**

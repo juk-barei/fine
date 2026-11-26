@@ -5,6 +5,7 @@ import type {
   TraceDisclosureReason,
 } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
+import { formatUsdt } from '../vocabulary';
 
 function DisclosureItem({
   label,
@@ -137,7 +138,7 @@ export function TraceGraphDisclosure({
             (dictionary) => dictionary.traceGraph.disclosure.minimumValue,
           )}
         >
-          {disclosure.minValueUsdt.toLocaleString()} USDT
+          {formatUsdt(disclosure.minValueUsdt)}
         </DisclosureItem>
         <DisclosureItem
           label={t(
