@@ -22,6 +22,7 @@
     "db:generate": "npm run db:generate -w @repo/server",
     "db:migrate": "npm run db:migrate -w @repo/server",
     "db:push": "npm run db:push -w @repo/server",
+    "sdl:check": "npm run generate:sdl -w @repo/contracts -- --check",
     "seed:admin": "npm run seed:admin -w @repo/server",
     "init": "node scripts/init-template.mjs",
     "compose:up": "docker compose up --build",
