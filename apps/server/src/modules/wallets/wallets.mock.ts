@@ -1,33 +1,38 @@
 import { createHash } from 'node:crypto';
 import type {
   IntermediaryClass,
-  TraceEdge,
-  TraceEdgeDirection,
   TraceLabel,
-  TraceNode,
   TraceNodeKind,
   TraceRule,
-  WalletTraceGraph,
 } from '@repo/contracts';
 import { OFAC_TRON_ADDRESSES } from '../../domain/screening/ofac-seed.ts';
 import {
   screenAddress,
   type Screening,
 } from '../../domain/screening/screening.ts';
+import type {
+  TraceNeighbourhood,
+  TraceNodeProfile,
+  TraceTransfer,
+} from '../../domain/trace/trace-graph.ts';
 
 /**
- * The deterministic mock trace graph: the synthetic half of the Tron data path
- * that answers "where did the money go" while the chain loader is still a plan.
+ * The deterministic trace source adapter: the synthetic half of the Tron
+ * data path that answers "where did the money go" while the chain loader is
+ * still a plan. Addresses, transfers, timestamps and per-address profiles
+ * all come from sha256 digests of the subject, so the same request renders
+ * the same picture. Nothing here is subject-relative: this file synthesizes
+ * a flat neighbourhood — the trace policy in `domain/trace/` derives every
+ * hop, direction, volume and disclosure from it. The nodes' screening comes
+ * from `screenAddress`, so the trace graph and the wallet list agree.
  *
- * The screening policy itself lives in `domain/screening/`; this file only
- * synthesizes the neighbourhood around an address. Its nodes carry the
- * screening the domain gives them, so the graph and the wallet list agree.
+ * Every traced wallet exposes the same children, so the neighbourhood grows
+ * as `4^hop`: 341 nodes at depth four and 1,365 at depth five. The product's
+ * node cap is therefore reachable by asking for depth five and not by
+ * asking for four, with no test-only switch.
  */
 
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-/** The product's node cap; a trace that needs more reports itself partial. */
-export const TRACE_NODE_CAP = 500;
 
 /** Counterparties are classified from this pool; the subject never is. */
 const COUNTERPARTY_KINDS: readonly TraceNodeKind[] = [
@@ -106,81 +111,47 @@ function rulesFor(address: string, screening: Screening): TraceRule[] {
   }));
 }
 
-function traceNode(address: string, hop: number, subject: boolean): TraceNode {
-  const screening = screenAddress(address);
+/**
+ * The per-address enrichment the policy carries: one screening at build
+ * time, plus the digest-derived classification. A total function of the
+ * address, so any node the policy keeps — the subject included — is
+ * profiled.
+ */
+function mockProfileOf(address: string): TraceNodeProfile {
+  const screening: Screening = screenAddress(address);
 
   return {
-    address,
-    hop,
-    kind: subject ? 'subject' : kindFor(address),
+    kind: kindFor(address),
     title: shortLabel(address),
     badge: null,
     band: screening.band,
     pLaundering: screening.score,
     confidence: screening.confidence,
-    volumeUsdt: 0,
-    intermediary: subject ? null : intermediaryFor(address),
+    intermediary: intermediaryFor(address),
     labels: labelsFor(address),
     rules: rulesFor(address, screening),
-    subject,
   };
 }
 
-export type MockTraceGraphInput = {
-  address: string;
-  depth: number;
-  minValueUsdt: number;
-};
-
-/**
- * Every traced wallet exposes the same children, so the mock's neighbourhood
- * grows as `4^hop`: 341 nodes at depth four and 1,365 at depth five. The cap
- * is therefore reachable by asking for depth five and not by asking for four,
- * with no test-only switch.
- */
+/** Every traced wallet exposes the same number of children. */
 const TRACE_FAN_OUT = 4;
 
-/** Highest value first, then nearest hop, then address. */
-function compareForCap(left: TraceNode, right: TraceNode): number {
-  if (left.volumeUsdt !== right.volumeUsdt) {
-    return right.volumeUsdt - left.volumeUsdt;
-  }
-  if (left.hop !== right.hop) return left.hop - right.hop;
-  return left.address < right.address
-    ? -1
-    : left.address > right.address
-      ? 1
-      : 0;
-}
-
 /**
- * The deterministic multi-hop mock neighbourhood of a wallet.
+ * The deterministic multi-hop mock neighbourhood of a wallet: a flat,
+ * depth-bounded transfer list plus the profile lookup, everything derived
+ * from the address so the same request renders the same picture.
  *
- * Topology, amounts, hashes and timestamps all come from the address, so the
- * same request renders the same picture. Depth sets the furthest hop; the
- * minimum transfer value filters transfers before nodes without one are
- * dropped, keeping only the component connected to the subject. Banding comes
- * from `screenAddress`, so the graph and the wallet list agree.
- *
- * The node cap runs after that filter and keeps the highest-value nodes, then
- * the nearest hop, then the address. Keeping nodes by value can evict a node
- * whose descendants survive, so the cap is followed by a reachability pass:
- * anything the subject can no longer reach is dropped with its edges, and the
- * disclosure counts what was actually returned. When the cap stops the trace
- * short the disclosure still says so: `truncated`, `coverage: partial`, a
- * reason, and the transfers loaded against the transfers reported for this
- * request. `volumeUsdt` sums every in-scope transfer incident to the wallet,
- * including those whose counterparty the cap left out, so the ranking the cap
- * used and the volume shown on the node are the same number.
+ * The digest decides each transfer's orientation — which endpoint is
+ * `from` — at hop one, and deeper hops inherit their branch's orientation,
+ * so a branch keeps one flow direction. The trace policy re-derives
+ * direction from the subject; this only picks the on-chain from/to.
  */
-export function mockTraceGraph({
-  address,
-  depth,
-  minValueUsdt,
-}: MockTraceGraphInput): WalletTraceGraph {
-  const nodes: TraceNode[] = [traceNode(address, 0, true)];
-  const edges: TraceEdge[] = [];
-  const directionByAddress = new Map<string, TraceEdgeDirection>();
+export function mockTraceNeighbourhood(
+  address: string,
+  depth: number,
+): TraceNeighbourhood {
+  const transfers: TraceTransfer[] = [];
+  const outwardByAddress = new Map<string, boolean>();
   let parents: string[] = [address];
 
   for (let hop = 1; hop <= depth; hop += 1) {
@@ -190,15 +161,12 @@ export function mockTraceGraph({
     for (let index = 0; index < parents.length * TRACE_FAN_OUT; index += 1) {
       const child = counterpartyAddress(address, hop, index);
       const parent = parents[Math.floor(index / TRACE_FAN_OUT)];
-      const direction: TraceEdgeDirection =
+      const outward: boolean =
         hop === 1
           ? hopBytes[index % hopBytes.length] % 2 === 0
-            ? 'outbound'
-            : 'inbound'
-          : directionByAddress.get(parent) ?? 'outbound';
+          : outwardByAddress.get(parent) ?? true;
 
-      directionByAddress.set(child, direction);
-      nodes.push(traceNode(child, hop, false));
+      outwardByAddress.set(child, outward);
       current.push(child);
 
       const amountBytes = digest(`${address}:trace-amount:${hop}:${index}`);
@@ -209,138 +177,19 @@ export function mockTraceGraph({
         'hex',
       );
 
-      edges.push({
-        id: txHash,
-        from: direction === 'outbound' ? parent : child,
-        to: direction === 'outbound' ? child : parent,
-        amountUsdt,
+      transfers.push({
         txHash,
+        from: outward ? parent : child,
+        to: outward ? child : parent,
+        amountUsdt,
         timestamp: new Date(
           Date.UTC(2026, 9, 1) + hours * 60 * 60 * 1000,
         ).toISOString(),
-        hop,
-        direction,
       });
     }
 
     parents = current;
   }
 
-  // The minimum value filters transfers first, so a transfer the investigator
-  // ruled out never costs a node its place under the cap.
-  const scopedEdges = edges.filter((edge) => edge.amountUsdt >= minValueUsdt);
-
-  // Keep the filtered transfers reachable from the subject: a transfer below
-  // the minimum must not leave an island floating beside the wallet.
-  const incident = new Map<string, TraceEdge[]>();
-  for (const edge of scopedEdges) {
-    for (const endpoint of [edge.from, edge.to]) {
-      const list = incident.get(endpoint);
-      if (list) list.push(edge);
-      else incident.set(endpoint, [edge]);
-    }
-  }
-
-  const reachable = new Set<string>([address]);
-  const queue = [address];
-  while (queue.length > 0) {
-    const current = queue.shift() as string;
-    for (const edge of incident.get(current) ?? []) {
-      const other = edge.from === current ? edge.to : edge.from;
-      if (!reachable.has(other)) {
-        reachable.add(other);
-        queue.push(other);
-      }
-    }
-  }
-
-  const reportedEdges = scopedEdges.filter(
-    (edge) => reachable.has(edge.from) && reachable.has(edge.to),
-  );
-  const volumes = new Map<string, number>();
-  for (const edge of reportedEdges) {
-    volumes.set(edge.from, (volumes.get(edge.from) ?? 0) + edge.amountUsdt);
-    volumes.set(edge.to, (volumes.get(edge.to) ?? 0) + edge.amountUsdt);
-  }
-
-  const scopedNodes = nodes
-    .filter((node) => reachable.has(node.address))
-    .map((node) => ({
-      ...node,
-      volumeUsdt: volumes.get(node.address) ?? 0,
-    }));
-
-  // The subject is the wallet the investigator opened: it is in every payload,
-  // whatever its volume, and the rest of the cap fills by value then proximity.
-  const [subject, ...counterparties] = scopedNodes;
-  const keptNodes = [
-    subject,
-    ...counterparties.sort(compareForCap).slice(0, TRACE_NODE_CAP - 1),
-  ];
-  const truncated = keptNodes.length < scopedNodes.length;
-
-  const keptAddresses = new Set(keptNodes.map((node) => node.address));
-  const keptEdges = reportedEdges.filter(
-    (edge) => keptAddresses.has(edge.from) && keptAddresses.has(edge.to),
-  );
-
-  // The cap ranks by value, so an evicted parent can strand its children.
-  // Reachability is recomputed over what survived: an island is not part of
-  // the subject's trace and must not be returned as if it were.
-  const keptIncident = new Map<string, TraceEdge[]>();
-  for (const edge of keptEdges) {
-    for (const endpoint of [edge.from, edge.to]) {
-      const list = keptIncident.get(endpoint);
-      if (list) list.push(edge);
-      else keptIncident.set(endpoint, [edge]);
-    }
-  }
-
-  const connected = new Set<string>([subject.address]);
-  const connectedQueue = [subject.address];
-  while (connectedQueue.length > 0) {
-    const current = connectedQueue.shift() as string;
-    for (const edge of keptIncident.get(current) ?? []) {
-      const other = edge.from === current ? edge.to : edge.from;
-      if (!connected.has(other)) {
-        connected.add(other);
-        connectedQueue.push(other);
-      }
-    }
-  }
-
-  const returnedNodes = keptNodes.filter((node) =>
-    connected.has(node.address),
-  );
-  const returnedEdges = keptEdges.filter(
-    (edge) => connected.has(edge.from) && connected.has(edge.to),
-  );
-  const depthReached = Math.max(...returnedNodes.map((node) => node.hop));
-
-  return {
-    simulated: true,
-    nodes: returnedNodes,
-    edges: returnedEdges,
-    disclosure: {
-      depthRequested: depth,
-      depthReached,
-      minValueUsdt,
-      nodesReturned: returnedNodes.length,
-      nodeCap: TRACE_NODE_CAP,
-      truncated,
-      coverage: truncated ? 'partial' : 'complete',
-      loadedTransfers: returnedEdges.length,
-      reportedTransfers: reportedEdges.length,
-      reason: truncated
-        ? {
-            code: 'node_cap_reached',
-            params: {
-              nodeCap: TRACE_NODE_CAP,
-              nodesKept: returnedNodes.length,
-              nodesScoped: scopedNodes.length,
-            },
-          }
-        : null,
-    },
-  };
+  return { simulated: true, transfers, profileOf: mockProfileOf };
 }
