@@ -14,7 +14,7 @@ import {
 import { graphqlRequest } from './graphql'
 
 const WALLETS_QUERY = `
-  query Wallets($limit: Int, $offset: Int, $status: String) {
+  query Wallets($limit: Int, $offset: Int, $status: DecisionStatus) {
     wallets(limit: $limit, offset: $offset, status: $status) {
       total
       nodes {
