@@ -12,6 +12,7 @@ import {
 const SUBJECT = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
 const HOP_ONE = 'TYASr5UV6HEcXatwdFQfmLVUqQQQMUxHLS';
 const HOP_ONE_LOW = 'TW5tokvhEfrb77z98Rc8HqbkzQJ6sxYtGX';
+const DROPPED = 'TZ42sU5kQ2n5rLZ6PhEGkmfLtmHjoi2vpS';
 const HOP_TWO = 'TZ42sU5kQ2n5rLZ6PhEGkmfLtmHjoi2vpr';
 
 const RULES = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'].map((code) => ({
@@ -214,7 +215,7 @@ describe('settleSelection', () => {
     );
   });
 
-  it('settles for nothing when the payload carries no subject either', () => {
+  it('keeps a surviving selection on a subjectless payload', () => {
     const subjectless: WalletTraceGraph = {
       ...graph,
       nodes: nodes.map((candidate) => ({ ...candidate, subject: false })),
@@ -222,6 +223,20 @@ describe('settleSelection', () => {
 
     expect(
       settleSelection(subjectless, { kind: 'node', address: HOP_TWO }),
+    ).toEqual({ kind: 'node', address: HOP_TWO });
+  });
+
+  it('settles for nothing when the payload carries no subject either', () => {
+    const subjectless: WalletTraceGraph = {
+      ...graph,
+      nodes: nodes.map((candidate) => ({ ...candidate, subject: false })),
+    };
+
+    expect(
+      settleSelection(subjectless, { kind: 'node', address: DROPPED }),
+    ).toBe(null);
+    expect(
+      settleSelection(subjectless, { kind: 'edge', id: 'edge-gone' }),
     ).toBe(null);
   });
 
