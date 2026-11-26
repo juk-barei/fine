@@ -845,7 +845,7 @@ describe('WalletTraceGraph', () => {
     ).toBeTruthy();
     expect(
       within(disclosure).getByText(
-        'Reason: Index covers half of the reported transfers.',
+        'Reason: Node cap of 4 reached: 4 of 8 nodes kept, highest value first.',
       ),
     ).toBeTruthy();
     expect(within(disclosure).queryByText('Within the node cap.')).toBeNull();
