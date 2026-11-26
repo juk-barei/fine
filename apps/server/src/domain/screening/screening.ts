@@ -30,8 +30,8 @@ export type Screening = {
   readonly flags: readonly string[];
 };
 
-export const HIGH_BAND_THRESHOLD = 0.7;
-export const MODERATE_BAND_THRESHOLD = 0.4;
+const HIGH_BAND_THRESHOLD = 0.7;
+const MODERATE_BAND_THRESHOLD = 0.4;
 
 export function bandForScore(score: number): WalletBand {
   if (score >= HIGH_BAND_THRESHOLD) return 'high';
