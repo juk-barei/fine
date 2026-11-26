@@ -178,8 +178,8 @@ function Landing() {
 
 function PreviewResult({ result }: { result: WalletScreening }) {
   const { wallet, flags } = result
-  const band = wallet.band ?? 'low'
-  const score = wallet.score ?? 0
+  const band = wallet.band
+  const score = wallet.score
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/40">
@@ -196,34 +196,40 @@ function PreviewResult({ result }: { result: WalletScreening }) {
       </header>
 
       <div className="px-6 py-6">
-        <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Risk score</p>
-            <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight">
-              {score.toFixed(2)}
-            </p>
-          </div>
-          <div className="min-w-48 flex-1">
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className={`h-full rounded-full ${bandBar[band]}`}
-                style={{ width: `${Math.round(score * 100)}%` }}
-              />
+        {band !== null && score !== null ? (
+          <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Risk score</p>
+              <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight">
+                {score.toFixed(2)}
+              </p>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span
-                className={`rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${bandBadge[band]}`}
-              >
-                {band} risk
-              </span>
-              {wallet.decisionStatus ? (
-                <span className="rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize">
-                  {wallet.decisionStatus}
+            <div className="min-w-48 flex-1">
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full ${bandBar[band]}`}
+                  style={{ width: `${Math.round(score * 100)}%` }}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${bandBadge[band]}`}
+                >
+                  {band} risk
                 </span>
-              ) : null}
+                {wallet.decisionStatus ? (
+                  <span className="rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize">
+                    {wallet.decisionStatus}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Not scored yet — this wallet exists without a screening result.
+          </p>
+        )}
 
         <div className="mt-6 border-t pt-6">
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">

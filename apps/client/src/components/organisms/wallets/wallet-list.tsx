@@ -1,4 +1,12 @@
 import type { WalletListItem } from '@repo/contracts'
+import type { SupportedLanguage } from '@/i18n'
+import {
+  bandLabel,
+  confidenceLabel,
+  decisionLabel,
+  notAvailableLabel,
+  tierLabel,
+} from './vocabulary'
 
 interface WalletListProps {
   nodes: WalletListItem[]
@@ -13,8 +21,9 @@ const bodyCell = 'px-4 py-3 align-middle'
 
 /**
  * The wallet read model as a table. Every field except the address can be
- * absent: an unscored wallet renders as "not scored", never as a zero, and an
- * unknown band, tier or decision renders as an em dash.
+ * absent: an unscored wallet renders as "not scored", never as a zero, and
+ * every enum word comes from the wallet vocabulary, with its
+ * missing-value marker when the field is unknown.
  */
 export function WalletList({
   nodes,
@@ -22,6 +31,10 @@ export function WalletList({
   error = null,
   onSelect,
 }: WalletListProps) {
+  // The list has no language switch yet; its headers are English, so the
+  // enum words are too.
+  const language: SupportedLanguage = 'en'
+
   if (error) {
     return <p className="text-sm text-destructive">{error}</p>
   }
@@ -91,16 +104,30 @@ export function WalletList({
                   wallet.score.toFixed(2)
                 )}
               </td>
-              <td className={bodyCell}>{wallet.band ?? '—'}</td>
-              <td className={bodyCell}>{wallet.confidence ?? '—'}</td>
               <td className={bodyCell}>
-                {wallet.labelTier ? wallet.labelTier.replace('_', ' ') : '—'}
+                {wallet.band
+                  ? bandLabel(wallet.band, language)
+                  : notAvailableLabel(language)}
               </td>
-              <td className={bodyCell}>{wallet.decisionStatus ?? '—'}</td>
+              <td className={bodyCell}>
+                {wallet.confidence
+                  ? confidenceLabel(wallet.confidence, language)
+                  : notAvailableLabel(language)}
+              </td>
+              <td className={bodyCell}>
+                {wallet.labelTier
+                  ? tierLabel(wallet.labelTier, language)
+                  : notAvailableLabel(language)}
+              </td>
+              <td className={bodyCell}>
+                {wallet.decisionStatus
+                  ? decisionLabel(wallet.decisionStatus, language)
+                  : notAvailableLabel(language)}
+              </td>
               <td className={`${bodyCell} text-muted-foreground`}>
                 {wallet.lastAnalysed
                   ? new Date(wallet.lastAnalysed).toLocaleDateString()
-                  : '—'}
+                  : notAvailableLabel(language)}
               </td>
             </tr>
           ))}

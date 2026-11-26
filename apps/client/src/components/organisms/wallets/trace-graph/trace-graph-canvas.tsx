@@ -1,14 +1,8 @@
 import { useId, useState, type KeyboardEvent } from 'react';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import type {
-  LabelTier,
-  TraceEdge,
-  TraceNode,
-  WalletBand,
-  WalletTraceGraph,
-} from '@repo/contracts';
+import type { TraceEdge, TraceNode, WalletTraceGraph } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
-import { bandBadge } from '../band-styles';
+import { bandBadge, bandLabel, NEUTRAL_BAND, tierLabel } from '../vocabulary';
 import { layoutTraceGraph } from './trace-graph-layout';
 import { TraceNodeIcon } from './trace-node-icon';
 
@@ -18,21 +12,6 @@ export type TraceGraphSelection =
 
 /** A bounded viewport keeps a depth-five graph from stretching the page. */
 const CANVAS_VIEWPORT_HEIGHT = 560;
-
-/** A node without a band is not "low": it is simply not scored. */
-const NEUTRAL_BAND = 'border-border bg-muted/40 text-muted-foreground';
-
-const TIER_KEY: Record<LabelTier, 'tier1' | 'tier2' | 'tier3'> = {
-  tier_1: 'tier1',
-  tier_2: 'tier2',
-  tier_3: 'tier3',
-};
-
-const BAND_KEY: Record<WalletBand, 'bandHigh' | 'bandModerate' | 'bandLow'> = {
-  high: 'bandHigh',
-  moderate: 'bandModerate',
-  low: 'bandLow',
-};
 
 function edgeLabel(edge: TraceEdge, language: SupportedLanguage): string {
   const direction =
@@ -51,7 +30,7 @@ function nodeLabel(
   language: SupportedLanguage,
 ): string {
   const hop = t(language, (dictionary) => dictionary.traceGraph.hop);
-  const bandLabel = t(
+  const bandWord = t(
     language,
     (dictionary) => dictionary.traceGraph.inspector.band,
   );
@@ -59,22 +38,14 @@ function nodeLabel(
   const bandValue =
     nodeBand === null
       ? t(language, (dictionary) => dictionary.traceGraph.unscored)
-      : t(
-          language,
-          (dictionary) => dictionary.traceGraph.inspector[BAND_KEY[nodeBand]],
-        );
+      : bandLabel(nodeBand, language);
   const label = node.labels[0];
-  const tier = label
-    ? `, ${t(
-        language,
-        (dictionary) => dictionary.traceGraph[TIER_KEY[label.tier]],
-      )}`
-    : '';
+  const tier = label ? `, ${tierLabel(label.tier, language)}` : '';
   const subject = node.subject
     ? `, ${t(language, (dictionary) => dictionary.traceGraph.subject).toLowerCase()}`
     : '';
 
-  return `${t(language, (dictionary) => dictionary.traceGraph.node)} ${node.address}, ${hop} ${node.hop}, ${bandLabel} ${bandValue}${tier}${subject}`;
+  return `${t(language, (dictionary) => dictionary.traceGraph.node)} ${node.address}, ${hop} ${node.hop}, ${bandWord} ${bandValue}${tier}${subject}`;
 }
 
 /**
@@ -164,7 +135,7 @@ function NodeCard({
         ) : null}
         {tier ? (
           <span className="shrink-0 font-semibold">
-            {t(language, (dictionary) => dictionary.traceGraph[TIER_KEY[tier.tier]])}
+            {tierLabel(tier.tier, language)}
           </span>
         ) : null}
       </span>

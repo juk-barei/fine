@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { tronAddressSchema, type WalletDetail } from '@repo/contracts'
 import { Button, CopyButton } from '@/components/atom'
 import { Sidebar, WalletTraceGraph } from '@/components/organisms'
-import { bandBadge, bandBar } from '@/components/organisms/wallets/band-styles'
+import { bandBadge, bandBar, notAvailableLabel } from '@/components/organisms/wallets/vocabulary'
 import { GraphQLRequestError } from '@/lib/graphql'
 import { useWalletDetail } from '@/lib/wallets'
 import type { SupportedLanguage } from '@/i18n'
@@ -165,14 +165,17 @@ function WalletDetailView({
         <section className="mt-6 border-t pt-6">
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              ['Confidence', wallet.confidence ?? '—'],
-              ['Label tier', wallet.labelTier?.replace('_', ' ') ?? '—'],
-              ['Decision', wallet.decisionStatus ?? '—'],
+              ['Confidence', wallet.confidence ?? notAvailableLabel(language)],
+              [
+                'Label tier',
+                wallet.labelTier?.replace('_', ' ') ?? notAvailableLabel(language),
+              ],
+              ['Decision', wallet.decisionStatus ?? notAvailableLabel(language)],
               [
                 'Analysed',
                 wallet.lastAnalysed
                   ? new Date(wallet.lastAnalysed).toLocaleString()
-                  : '—',
+                  : notAvailableLabel(language),
               ],
             ].map(([label, value]) => (
               <div key={label}>

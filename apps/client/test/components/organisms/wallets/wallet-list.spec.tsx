@@ -38,10 +38,10 @@ describe('WalletList', () => {
 
     const row = screen.getByRole('row', { name: /4172d5f0/ })
     expect(within(row).getByText('0.82')).toBeTruthy()
-    expect(within(row).getByText('high')).toBeTruthy()
-    expect(within(row).getByText('medium')).toBeTruthy()
-    expect(within(row).getByText('tier 1')).toBeTruthy()
-    expect(within(row).getByText('flagged')).toBeTruthy()
+    expect(within(row).getByText('High')).toBeTruthy()
+    expect(within(row).getByText('Medium')).toBeTruthy()
+    expect(within(row).getByText('Tier 1')).toBeTruthy()
+    expect(within(row).getByText('Flagged')).toBeTruthy()
   })
 
   it('renders an unscored wallet as unknown, never as zero', () => {

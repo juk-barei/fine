@@ -1,26 +1,12 @@
 import type {
   IntermediaryClass,
-  LabelTier,
   TraceEdgeDirection,
-  WalletBand,
   WalletConfidence,
   WalletTraceGraph,
 } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
-import { bandBadge } from '../band-styles';
+import { bandBadge, bandLabel, tierLabel } from '../vocabulary';
 import type { TraceGraphSelection } from './trace-graph-canvas';
-
-const TIER_KEY: Record<LabelTier, 'tier1' | 'tier2' | 'tier3'> = {
-  tier_1: 'tier1',
-  tier_2: 'tier2',
-  tier_3: 'tier3',
-};
-
-const BAND_KEY: Record<WalletBand, 'bandHigh' | 'bandModerate' | 'bandLow'> = {
-  high: 'bandHigh',
-  moderate: 'bandModerate',
-  low: 'bandLow',
-};
 
 const CONFIDENCE_KEY: Record<
   WalletConfidence,
@@ -155,11 +141,7 @@ export function TraceGraphInspector({
                   <span
                     className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${bandBadge[node.band]}`}
                   >
-                    {t(
-                      language,
-                      (dictionary) =>
-                        dictionary.traceGraph.inspector[BAND_KEY[node.band as WalletBand]],
-                    )}
+                    {bandLabel(node.band, language)}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">
@@ -270,11 +252,7 @@ export function TraceGraphInspector({
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                       <span className="font-semibold">
-                        {t(
-                          language,
-                          (dictionary) =>
-                            dictionary.traceGraph[TIER_KEY[label.tier]],
-                        )}
+                        {tierLabel(label.tier, language)}
                       </span>
                       <span className="text-muted-foreground">
                         {t(
