@@ -6,7 +6,7 @@ import type {
 } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
 import { bandBadge, bandLabel, tierLabel } from '../vocabulary';
-import type { TraceGraphSelection } from './trace-graph-canvas';
+import type { TraceGraphSelection } from './trace-graph-interaction';
 
 const CONFIDENCE_KEY: Record<
   WalletConfidence,

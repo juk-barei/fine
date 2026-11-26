@@ -1,82 +1,20 @@
-import { useId, useState, type KeyboardEvent } from 'react';
+import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import type { TraceEdge, TraceNode, WalletTraceGraph } from '@repo/contracts';
+import type { TraceNode, WalletTraceGraph } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
-import { bandBadge, bandLabel, NEUTRAL_BAND, tierLabel } from '../vocabulary';
+import { bandBadge, NEUTRAL_BAND, tierLabel } from '../vocabulary';
 import { layoutTraceGraph } from './trace-graph-layout';
+import {
+  edgeSentence,
+  nodeSentence,
+  selectionAnnouncement,
+  traceDimming,
+  type TraceGraphSelection,
+} from './trace-graph-interaction';
 import { TraceNodeIcon } from './trace-node-icon';
-
-export type TraceGraphSelection =
-  | { kind: 'node'; address: string }
-  | { kind: 'edge'; id: string };
 
 /** A bounded viewport keeps a depth-five graph from stretching the page. */
 const CANVAS_VIEWPORT_HEIGHT = 560;
-
-function edgeLabel(edge: TraceEdge, language: SupportedLanguage): string {
-  const direction =
-    edge.direction === 'inbound'
-      ? t(language, (dictionary) => dictionary.traceGraph.inbound)
-      : t(language, (dictionary) => dictionary.traceGraph.outbound);
-  const from = t(language, (dictionary) => dictionary.traceGraph.from);
-  const to = t(language, (dictionary) => dictionary.traceGraph.to);
-  const hop = t(language, (dictionary) => dictionary.traceGraph.hop);
-
-  return `${t(language, (dictionary) => dictionary.traceGraph.transferOf)} ${edge.amountUsdt.toLocaleString()} USDT, ${from} ${edge.from}, ${to} ${edge.to}, ${hop} ${edge.hop}, ${direction}`;
-}
-
-function nodeLabel(
-  node: TraceNode,
-  language: SupportedLanguage,
-): string {
-  const hop = t(language, (dictionary) => dictionary.traceGraph.hop);
-  const bandWord = t(
-    language,
-    (dictionary) => dictionary.traceGraph.inspector.band,
-  );
-  const nodeBand = node.band;
-  const bandValue =
-    nodeBand === null
-      ? t(language, (dictionary) => dictionary.traceGraph.unscored)
-      : bandLabel(nodeBand, language);
-  const label = node.labels[0];
-  const tier = label ? `, ${tierLabel(label.tier, language)}` : '';
-  const subject = node.subject
-    ? `, ${t(language, (dictionary) => dictionary.traceGraph.subject).toLowerCase()}`
-    : '';
-
-  return `${t(language, (dictionary) => dictionary.traceGraph.node)} ${node.address}, ${hop} ${node.hop}, ${bandWord} ${bandValue}${tier}${subject}`;
-}
-
-/**
- * What the live region reads out when the selection changes: the same label the
- * control carries, plus the fact that the details opened.
- */
-function selectionAnnouncement(
-  graph: WalletTraceGraph,
-  selection: TraceGraphSelection | null,
-  language: SupportedLanguage,
-): string {
-  if (selection === null) return '';
-
-  let subject: string;
-  if (selection.kind === 'node') {
-    const node = graph.nodes.find(
-      (candidate) => candidate.address === selection.address,
-    );
-    if (node === undefined) return '';
-    subject = nodeLabel(node, language);
-  } else {
-    const edge = graph.edges.find((candidate) => candidate.id === selection.id);
-    if (edge === undefined) return '';
-    subject = edgeLabel(edge, language);
-  }
-
-  return `${subject}. ${t(
-    language,
-    (dictionary) => dictionary.traceGraph.a11y.selectionAnnouncement,
-  )}`;
-}
 
 /** Enter and Space activate a control, matching native button behaviour. */
 function activateOnKey(
@@ -113,7 +51,7 @@ function NodeCard({
       onKeyDown={(event) => activateOnKey(event, onSelect)}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      aria-label={nodeLabel(node, language)}
+      aria-label={nodeSentence(node, language)}
       aria-pressed={selected}
       data-dimmed={dimmed ? 'true' : undefined}
       className={`flex h-full w-full flex-col items-start justify-center gap-0.5 rounded-xl border bg-background px-3 py-1.5 text-left outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-opacity ${node.band ? bandBadge[node.band] : NEUTRAL_BAND} ${
@@ -179,14 +117,12 @@ export function TraceGraphCanvas({
   );
 
   // Hovering a node keeps the node and its immediate neighbours bright and
-  // dims the rest, so one thread can be followed through a dense graph.
-  const neighbours = new Set<string>();
-  if (hoveredAddress !== null) {
-    for (const edge of graph.edges) {
-      if (edge.from === hoveredAddress) neighbours.add(edge.to);
-      else if (edge.to === hoveredAddress) neighbours.add(edge.from);
-    }
-  }
+  // dims the rest, so one thread can be followed through a dense graph. The
+  // rule itself lives in the interaction module; the canvas only renders it.
+  const dimming = useMemo(
+    () => traceDimming(graph, hoveredAddress),
+    [graph, hoveredAddress],
+  );
 
   const zoomBy = (step: number) => {
     setZoom((current) =>
@@ -270,11 +206,8 @@ export function TraceGraphCanvas({
             const isSelected =
               selected?.kind === 'edge' && selected.id === edge.id;
             const isFocused = focusedEdgeId === edge.id;
-            const dimmed =
-              hoveredAddress !== null &&
-              edge.from !== hoveredAddress &&
-              edge.to !== hoveredAddress;
-            const label = edgeLabel(edge, language);
+            const dimmed = dimming.isEdgeDimmed(edge);
+            const label = edgeSentence(edge, language);
             const x1 = from.x + from.width / 2;
             const y1 = from.y + from.height / 2;
             const x2 = to.x + to.width / 2;
@@ -358,11 +291,7 @@ export function TraceGraphCanvas({
                     selected?.kind === 'node' &&
                     selected.address === node.address
                   }
-                  dimmed={
-                    hoveredAddress !== null &&
-                    node.address !== hoveredAddress &&
-                    !neighbours.has(node.address)
-                  }
+                  dimmed={dimming.isNodeDimmed(node.address)}
                   language={language}
                   onSelect={() =>
                     onSelect({ kind: 'node', address: node.address })
