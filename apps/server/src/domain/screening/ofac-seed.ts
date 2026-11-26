@@ -34,7 +34,7 @@ export const OFAC_TRON_ADDRESSES: Readonly<Record<string, true>> = {
   'TNwe3WoEX6XrQ5NPAeWPkvpTtdaf27XYxK': true,
   'TGcewGsDLy7Fzc66kXXEB8Kh2b6u2XCvnV': true,
   'TYq3iRujcBELXX89i9JY32UmLxcyZAJe7E': true,
-  'TRyQivSkQChryfnYnE1bUmJhnL3TvKUpvS': true,
+  'TRyQivSkQChryfnYnE1bUmJhnL3TvKUpvE': true,
   'TGjYoJLhfAiD2BRV9hwCeuHhZ54D3gLKTd': true,
   'TXT9atp8qBMXKbFYnRyWkM88UXYyobQNLP': true,
   'TThRMUSidD4gQeCnu56cFfCmqS421Nmbu7': true,

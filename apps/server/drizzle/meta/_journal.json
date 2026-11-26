@@ -29,6 +29,13 @@
       "when": 1794432925825,
       "tag": "0003_tron_wallet_addresses",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795652138594,
+      "tag": "0004_familiar_luminals",
+      "breakpoints": true
     }
   ]
 }

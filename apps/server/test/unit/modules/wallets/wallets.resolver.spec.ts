@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { walletTraceGraphSchema } from '@repo/contracts';
+import { MockWalletScorer } from '../../../../src/modules/wallets/mock-scorer.adapter.ts';
 import { WalletsResolver } from '../../../../src/modules/wallets/wallets.resolver.ts';
 import { WalletsService } from '../../../../src/modules/wallets/wallets.service.ts';
 import { makeFakeDb } from '../../../support/effect-test.ts';
@@ -8,7 +9,9 @@ const ADDRESS = 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7';
 
 function createResolver() {
   const db = makeFakeDb();
-  const resolver = new WalletsResolver(new WalletsService(db as never));
+  const resolver = new WalletsResolver(
+    new WalletsService(db as never, new MockWalletScorer()),
+  );
   return { resolver, db };
 }
 

@@ -1,100 +1,28 @@
 import { createHash } from 'node:crypto';
 import type {
-  DecisionStatus,
   IntermediaryClass,
-  LabelTier,
   TraceEdge,
   TraceEdgeDirection,
   TraceLabel,
   TraceNode,
   TraceNodeKind,
   TraceRule,
-  WalletBand,
-  WalletConfidence,
   WalletTraceGraph,
 } from '@repo/contracts';
-import { OFAC_TRON_ADDRESSES } from './ofac-seed.ts';
+import { OFAC_TRON_ADDRESSES } from '../../domain/screening/ofac-seed.ts';
+import {
+  screenAddress,
+  type Screening,
+} from '../../domain/screening/screening.ts';
 
 /**
- * The deterministic mock screener standing in for the real Tron data path.
+ * The deterministic mock trace graph: the synthetic half of the Tron data path
+ * that answers "where did the money go" while the chain loader is still a plan.
  *
- * Same address in, same result out, so demos and tests are reproducible. When
- * the chain loader lands, the mock's place is the seam the real scorer takes:
- * `screenAddress` is pure and takes nothing but the address.
+ * The screening policy itself lives in `domain/screening/`; this file only
+ * synthesizes the neighbourhood around an address. Its nodes carry the
+ * screening the domain gives them, so the graph and the wallet list agree.
  */
-export type MockScreening = {
-  score: number;
-  band: WalletBand;
-  confidence: WalletConfidence;
-  labelTier: LabelTier;
-  decisionStatus: DecisionStatus;
-  flags: string[];
-};
-
-const FLAG_POOL = [
-  '2-hop exposure to an OFAC SDN wallet',
-  'inbound flow from a Tether-frozen address',
-  'fan-out to 128 recipients within 6 hours',
-  'shared deposit address with a flagged wallet',
-  'sanctions-adjacent counterparty (NBCTF)',
-  'round-number transfers split below reporting thresholds',
-] as const;
-
-export const HIGH_BAND_THRESHOLD = 0.7;
-export const MODERATE_BAND_THRESHOLD = 0.4;
-
-export function bandForScore(score: number): WalletBand {
-  if (score >= HIGH_BAND_THRESHOLD) return 'high';
-  if (score >= MODERATE_BAND_THRESHOLD) return 'moderate';
-  return 'low';
-}
-
-export function screenAddress(address: string): MockScreening {
-  const digest = createHash('sha256').update(address).digest();
-
-  // List membership beats the hash: a sanctioned address must not hash its way
-  // into a lower tier.
-  if (OFAC_TRON_ADDRESSES[address] === true) {
-    return {
-      score: Math.round((0.9 + (digest[0] / 255) * 0.09) * 10_000) / 10_000,
-      band: 'high',
-      confidence: 'high',
-      labelTier: 'tier_1',
-      decisionStatus: 'flagged',
-      flags: [
-        'direct match on the OFAC SDN list (Tier 1)',
-        'OFAC action: XINBI GUARANTEE, 2026-09-09',
-      ],
-    };
-  }
-
-  // 0.02..0.98 keeps the result inside the contract's 0..1 range without
-  // pinning either end, so every band is reachable.
-  const score = Math.round((0.02 + (digest[0] / 255) * 0.96) * 10_000) / 10_000;
-  const band = bandForScore(score);
-
-  const labelTier: LabelTier =
-    digest[1] < 60 ? 'tier_1' : digest[1] < 180 ? 'tier_2' : 'tier_3';
-
-  const decisionStatus: DecisionStatus =
-    band === 'high' ? 'flagged' : band === 'moderate' ? 'open' : 'cleared';
-
-  const confidence: WalletConfidence =
-    band === 'high' && labelTier === 'tier_1'
-      ? 'high'
-      : band === 'high' || labelTier === 'tier_2'
-        ? 'medium'
-        : 'low';
-
-  const flagCount = band === 'high' ? 3 : band === 'moderate' ? 2 : 0;
-  const start = digest[2] % FLAG_POOL.length;
-  const flags = Array.from(
-    { length: flagCount },
-    (_, index) => FLAG_POOL[(start + index) % FLAG_POOL.length],
-  );
-
-  return { score, band, confidence, labelTier, decisionStatus, flags };
-}
 
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
@@ -164,7 +92,7 @@ function intermediaryFor(address: string): IntermediaryClass | null {
   return INTERMEDIARY_CLASSES[bytes[1] % INTERMEDIARY_CLASSES.length];
 }
 
-function rulesFor(address: string, screening: MockScreening): TraceRule[] {
+function rulesFor(address: string, screening: Screening): TraceRule[] {
   const bytes = digest(`${address}:rules`);
   const threshold = 15 + Math.round(screening.score * 70);
   const sanctioned = OFAC_TRON_ADDRESSES[address] === true;

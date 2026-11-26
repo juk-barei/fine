@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Effect } from 'effect';
 import { sql } from 'drizzle-orm';
 import { InjectDrizzle } from '@nest-native/drizzle';
@@ -13,6 +13,7 @@ import {
   type WalletScreening,
   type WalletTraceGraph,
 } from '@repo/contracts';
+import type { Screening } from '../../domain/screening/screening.ts';
 import { extractRows } from '../../common/db.ts';
 import type { AppDatabase } from '../../database.ts';
 import {
@@ -22,7 +23,8 @@ import {
   withResilience,
   type ValidationFailure,
 } from '../../common/effect/index.ts';
-import { mockTraceGraph, screenAddress } from './wallets.mock.ts';
+import { mockTraceGraph } from './wallets.mock.ts';
+import { WALLET_SCORER, type WalletScorer } from './scoring.ts';
 
 type WalletError = ValidationFailure | DbFailure;
 
@@ -33,6 +35,7 @@ type WalletRow = {
   confidence: string | null;
   label_tier: string | null;
   decision_status: string | null;
+  flags: string[] | null;
   last_analysed: Date | string | null;
 };
 
@@ -54,31 +57,49 @@ function toWalletListItem(row: WalletRow): WalletListItem {
 }
 
 /**
- * A row plus everything the mock scorer knows about the address. Reading it
- * back is a pure re-derivation rather than a second write, so a re-screen and
- * a read can never disagree.
+ * The read path's single source of truth: whatever the last screening
+ * persisted is exactly what the caller sees, never a fresh re-derivation.
+ * Rows scored before the flags column existed read as flagless until the
+ * backfill re-scores them.
  */
-function toWalletDetail(address: string, row: WalletRow): WalletDetail {
-  if (row.score === null) {
-    return {
-      wallet: toWalletListItem(row),
-      flags: [],
-      simulated: true,
-    };
-  }
-
-  const mock = screenAddress(address);
-
+function toDetail(row: WalletRow): WalletDetail {
   return {
     wallet: toWalletListItem(row),
-    flags: mock.flags,
+    flags: row.flags ?? [],
+    simulated: true,
+  };
+}
+
+/**
+ * One screening result as the wire contract presents it. `simulated` stays
+ * true while the deterministic mock is the scorer behind the port.
+ */
+function presentScreening(
+  address: string,
+  screening: Screening,
+  lastAnalysed: string | null,
+): WalletScreening {
+  return {
+    wallet: {
+      address,
+      score: screening.score,
+      band: screening.band,
+      confidence: screening.confidence,
+      labelTier: screening.labelTier,
+      decisionStatus: screening.decisionStatus,
+      lastAnalysed,
+    },
+    flags: [...screening.flags],
     simulated: true,
   };
 }
 
 @Injectable()
 export class WalletsService {
-  constructor(@InjectDrizzle() private readonly db: AppDatabase) {}
+  constructor(
+    @InjectDrizzle() private readonly db: AppDatabase,
+    @Inject(WALLET_SCORER) private readonly scorer: WalletScorer,
+  ) {}
 
   list(input: unknown): Effect.Effect<WalletPage, WalletError> {
     const self = this;
@@ -120,33 +141,37 @@ export class WalletsService {
   }
 
   /**
-   * Screen one wallet with the deterministic mock scorer and persist the
-   * result into the read model, so the list reflects the run.
+   * Screen one wallet through the scorer port and persist the result whole —
+   * flags included — so every later read projects the row and nothing else.
    */
   screen(input: unknown): Effect.Effect<WalletScreening, WalletError> {
     const self = this;
     return withResilience(
       Effect.gen(function* () {
         const { address } = yield* parse(walletAddressInputSchema, input);
-        const mock = screenAddress(address);
+        const screening = self.scorer.screen(address);
 
         const rows = extractRows<WalletRow>(
           yield* tryDb(() =>
             self.db.execute(sql`
               insert into wallets
-                (address, score, band, confidence, label_tier, decision_status, last_analysed)
+                (address, score, band, confidence, label_tier, decision_status,
+                 flags, last_analysed)
               values
-                (${address}, ${mock.score}, ${mock.band}, ${mock.confidence},
-                 ${mock.labelTier}, ${mock.decisionStatus}, now())
+                (${address}, ${screening.score}, ${screening.band},
+                 ${screening.confidence}, ${screening.labelTier},
+                 ${screening.decisionStatus}, ${sql.param([...screening.flags])},
+                 now())
               on conflict (address) do update set
                 score = excluded.score,
                 band = excluded.band,
                 confidence = excluded.confidence,
                 label_tier = excluded.label_tier,
                 decision_status = excluded.decision_status,
+                flags = excluded.flags,
                 last_analysed = excluded.last_analysed
               returning address, score, band, confidence, label_tier,
-                        decision_status, last_analysed
+                        decision_status, flags, last_analysed
             `),
           ),
         );
@@ -162,7 +187,7 @@ export class WalletsService {
           );
         }
 
-        return toWalletDetail(address, row);
+        return toDetail(row);
       }),
       { idempotent: true },
     );
@@ -178,7 +203,7 @@ export class WalletsService {
           yield* tryDb(() =>
             self.db.execute(sql`
               select address, score, band, confidence, label_tier,
-                     decision_status, last_analysed
+                     decision_status, flags, last_analysed
               from wallets
               where address = ${address}
               limit 1
@@ -187,34 +212,25 @@ export class WalletsService {
         );
 
         const row = rows[0];
-        return row ? toWalletDetail(address, row) : null;
+        return row ? toDetail(row) : null;
       }),
       { idempotent: true },
     );
   }
 
   /**
-   * The landing page's anonymous screening: same deterministic result, no row
-   * written. Persisting is the signed-in investigator's action.
+   * The landing page's anonymous screening: the scorer's fresh result,
+   * presented and forgotten. No row is written — persisting is the signed-in
+   * investigator's action, so a later `screen` overwriting the row is the
+   * intended outcome, not a disagreement.
    */
   preview(input: unknown): Effect.Effect<WalletScreening, WalletError> {
+    const self = this;
     return Effect.gen(function* () {
       const { address } = yield* parse(walletAddressInputSchema, input);
-      const mock = screenAddress(address);
+      const screening = self.scorer.screen(address);
 
-      return {
-        wallet: {
-          address,
-          score: mock.score,
-          band: mock.band,
-          confidence: mock.confidence,
-          labelTier: mock.labelTier,
-          decisionStatus: mock.decisionStatus,
-          lastAnalysed: new Date().toISOString(),
-        },
-        flags: mock.flags,
-        simulated: true,
-      };
+      return presentScreening(address, screening, new Date().toISOString());
     });
   }
 
