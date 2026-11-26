@@ -23,7 +23,8 @@ import {
   withResilience,
   type ValidationFailure,
 } from '../../common/effect/index.ts';
-import { mockTraceGraph } from './wallets.mock.ts';
+import { buildTraceGraph } from '../../domain/trace/trace-graph.ts';
+import { mockTraceNeighbourhood } from './wallets.mock.ts';
 import { WALLET_SCORER, type WalletScorer } from './scoring.ts';
 
 type WalletError = ValidationFailure | DbFailure;
@@ -236,8 +237,9 @@ export class WalletsService {
 
   /**
    * The trace graph is its own query: depth and the minimum transfer value
-   * refetch the graph without re-reading the wallet row. The builder is pure
-   * and deterministic, so the payload is parsed against the shared contract
+   * refetch the graph without re-reading the wallet row. The service composes
+   * the trace source adapter with the domain trace policy; both are pure and
+   * deterministic, so the payload is parsed against the shared contract
    * before it leaves the service.
    */
   graph(input: unknown): Effect.Effect<WalletTraceGraph, WalletError> {
@@ -248,7 +250,12 @@ export class WalletsService {
       );
 
       return walletTraceGraphSchema.parse(
-        mockTraceGraph({ address, depth, minValueUsdt }),
+        buildTraceGraph({
+          address,
+          depth,
+          minValueUsdt,
+          ...mockTraceNeighbourhood(address, depth),
+        }),
       );
     });
   }
