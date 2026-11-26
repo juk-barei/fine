@@ -77,7 +77,9 @@ export const verification = pgTable('verification', {
 });
 
 // Project tables. The wallet read model: list-only columns, every field but
-// the address nullable until scoring and labelling exist (ADR: read model only).
+// the address nullable until scoring and labelling exist. One screening run
+// persists its result whole — flags included — so a read is a row projection,
+// never a re-derivation (ADR: read model only).
 export const wallets = pgTable(
   'wallets',
   {
@@ -87,6 +89,7 @@ export const wallets = pgTable(
     confidence: text('confidence'),
     labelTier: text('label_tier'),
     decisionStatus: text('decision_status'),
+    flags: text('flags').array(),
     lastAnalysed: timestamp('last_analysed'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
