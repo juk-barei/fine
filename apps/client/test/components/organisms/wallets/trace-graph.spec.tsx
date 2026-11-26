@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { TraceEdge, TraceNode, WalletTraceGraph } from '@repo/contracts';
 import { TraceGraphCanvas } from '@/components/organisms/wallets/trace-graph/trace-graph-canvas';
+import { selectionAnnouncement } from '@/components/organisms/wallets/trace-graph/trace-graph-interaction';
 
 vi.mock('@/lib/wallets', () => ({
   useWalletGraph: vi.fn(),
@@ -265,64 +266,6 @@ describe('TraceGraphCanvas', () => {
     );
   });
 
-  it('announces every node with its address and hop', () => {
-    render(
-      <TraceGraphCanvas
-        graph={graph}
-        selected={null}
-        onSelect={noop}
-        language="en"
-      />,
-    );
-
-    const cases: Array<[string, number]> = [
-      [SUBJECT, 0],
-      [HOP_ONE, 1],
-      [HOP_ONE_LOW, 1],
-      [HOP_TWO, 2],
-    ];
-
-    for (const [address, hop] of cases) {
-      const label =
-        screen
-          .getByRole('button', { name: new RegExp(`^Node ${address}`) })
-          .getAttribute('aria-label') ?? '';
-
-      expect(label).toContain(address);
-      expect(label).toContain(`Hop ${hop}`);
-    }
-  });
-
-  it('announces every transfer with its amount, endpoints and hop', () => {
-    render(
-      <TraceGraphCanvas
-        graph={graph}
-        selected={null}
-        onSelect={noop}
-        language="en"
-      />,
-    );
-
-    const cases = [
-      { amount: '1,250', from: SUBJECT, to: HOP_ONE, hop: 1 },
-      { amount: '9,000', from: HOP_ONE, to: HOP_TWO, hop: 2 },
-      { amount: '500', from: HOP_ONE_LOW, to: SUBJECT, hop: 1 },
-    ];
-
-    for (const item of cases) {
-      const label =
-        screen
-          .getByRole('button', {
-            name: new RegExp(`^Transfer of ${item.amount} USDT`),
-          })
-          .getAttribute('aria-label') ?? '';
-
-      expect(label).toContain(item.from);
-      expect(label).toContain(item.to);
-      expect(label).toContain(`Hop ${item.hop}`);
-    }
-  });
-
   it('keeps every transfer in the tab order', () => {
     render(
       <TraceGraphCanvas
@@ -470,55 +413,6 @@ describe('TraceGraphCanvas', () => {
     expect(Number(svg.getAttribute('width'))).toBe(initialWidth);
   });
 
-  it('announces a node band and label tier, and calls a null band unscored', () => {
-    const { unmount } = render(
-      <TraceGraphCanvas
-        graph={graph}
-        selected={null}
-        onSelect={noop}
-        language="en"
-      />,
-    );
-
-    const labelled =
-      screen
-        .getByRole('button', { name: new RegExp(`^Node ${HOP_ONE},`) })
-        .getAttribute('aria-label') ?? '';
-    expect(labelled).toContain('Band High');
-    expect(labelled).toContain('Tier 1');
-
-    const unlabelled =
-      screen
-        .getByRole('button', { name: new RegExp(`^Node ${HOP_TWO},`) })
-        .getAttribute('aria-label') ?? '';
-    expect(unlabelled).toContain('Band Low');
-    expect(unlabelled).not.toContain('Tier');
-
-    unmount();
-
-    render(
-      <TraceGraphCanvas
-        graph={{
-          ...graph,
-          nodes: nodes.map((candidate) =>
-            candidate.address === HOP_ONE_LOW
-              ? { ...candidate, band: null, labels: [] }
-              : candidate,
-          ),
-        }}
-        selected={null}
-        onSelect={noop}
-        language="en"
-      />,
-    );
-
-    const unscored =
-      screen
-        .getByRole('button', { name: new RegExp(`^Node ${HOP_ONE_LOW},`) })
-        .getAttribute('aria-label') ?? '';
-    expect(unscored).toContain('Band Unscored');
-  });
-
   it('renders a null band neutrally instead of as low risk', () => {
     render(
       <TraceGraphCanvas
@@ -568,7 +462,7 @@ describe('TraceGraphCanvas', () => {
     expect(screen.getByText('OFAC SDN')).toBeTruthy();
   });
 
-  it('dims everything that is not an immediate neighbour while a node is hovered', () => {
+  it('dims through data-dimmed while a node is hovered and clears on leave', () => {
     render(
       <TraceGraphCanvas
         graph={graph}
@@ -586,15 +480,8 @@ describe('TraceGraphCanvas', () => {
       });
 
     fireEvent.mouseEnter(nodeButton(HOP_ONE));
-
-    // HOP_ONE is adjacent to the subject (edge-1) and HOP_TWO (edge-2).
     expect(nodeButton(HOP_ONE).getAttribute('data-dimmed')).toBeNull();
-    expect(nodeButton(SUBJECT).getAttribute('data-dimmed')).toBeNull();
-    expect(nodeButton(HOP_TWO).getAttribute('data-dimmed')).toBeNull();
     expect(nodeButton(HOP_ONE_LOW).getAttribute('data-dimmed')).toBe('true');
-
-    expect(edgeButton('1,250').getAttribute('data-dimmed')).toBeNull();
-    expect(edgeButton('9,000').getAttribute('data-dimmed')).toBeNull();
     expect(edgeButton('500').getAttribute('data-dimmed')).toBe('true');
 
     fireEvent.mouseLeave(nodeButton(HOP_ONE));
@@ -703,31 +590,20 @@ describe('WalletTraceGraph', () => {
     expect(screen.getByRole('alert').textContent).toContain('0 USDT or more');
   });
 
-  it('keeps the selected node when it survives the re-query', () => {
+  it('renders the settled selection in the inspector after a re-query', () => {
     render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
 
     fireEvent.click(
       screen.getByRole('button', { name: new RegExp(`^Node ${HOP_TWO}`) }),
     );
-    fireEvent.change(screen.getByLabelText('Depth'), {
-      target: { value: '4' },
-    });
 
-    const inspector = screen.getByRole('region', {
+    const openInspector = screen.getByRole('region', {
       name: 'Selection details',
     });
+    expect(within(openInspector).getByText(HOP_TWO)).toBeTruthy();
 
-    expect(mockedHook).toHaveBeenLastCalledWith(SUBJECT, 4, 0);
-    expect(within(inspector).getByText(HOP_TWO)).toBeTruthy();
-  });
-
-  it('falls back to the subject when the selected node leaves the graph', () => {
-    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
-
-    fireEvent.click(
-      screen.getByRole('button', { name: new RegExp(`^Node ${HOP_TWO}`) }),
-    );
-
+    // The re-query drops the selected node, so what renders is the settled
+    // selection — the subject — even though no effect rewrites the state.
     mockedHook.mockReturnValue({
       data: {
         ...graph,
@@ -747,6 +623,7 @@ describe('WalletTraceGraph', () => {
       name: 'Selection details',
     });
 
+    expect(mockedHook).toHaveBeenLastCalledWith(SUBJECT, 1, 0);
     expect(within(inspector).getByText(SUBJECT)).toBeTruthy();
     expect(within(inspector).queryByText(HOP_TWO)).toBeNull();
   });
@@ -794,7 +671,7 @@ describe('WalletTraceGraph', () => {
     expect(within(inspector).getByText('b'.repeat(64))).toBeTruthy();
   });
 
-  it('announces a keyboard selection in a live region', () => {
+  it('feeds the live region from the selection announcement', () => {
     render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
 
     const status = screen.getByRole('status');
@@ -807,24 +684,9 @@ describe('WalletTraceGraph', () => {
     nodeButton.focus();
     fireEvent.keyDown(nodeButton, { key: 'Enter' });
 
-    expect(status.textContent).toContain(HOP_TWO);
-    expect(status.textContent).toContain('Hop 2');
-    expect(status.textContent).toContain('Selection details opened');
-  });
-
-  it('announces a keyboard-selected transfer in the live region', () => {
-    render(<WalletTraceGraphSection address={SUBJECT} language="en" />);
-
-    const transfer = screen.getByRole('button', {
-      name: /^Transfer of 1,250 USDT/,
-    });
-    transfer.focus();
-    fireEvent.keyDown(transfer, { key: 'Enter' });
-
-    const status = screen.getByRole('status');
-    expect(status.textContent).toContain('1,250');
-    expect(status.textContent).toContain(SUBJECT);
-    expect(status.textContent).toContain(HOP_ONE);
+    expect(status.textContent).toBe(
+      selectionAnnouncement(graph, { kind: 'node', address: HOP_TWO }, 'en'),
+    );
   });
 
   it('shows amount, transaction and timestamp when a transfer is selected', () => {

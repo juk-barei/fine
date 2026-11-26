@@ -1,14 +1,15 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import {
   WALLET_GRAPH_DEFAULT_DEPTH,
   WALLET_GRAPH_DEFAULT_MIN_VALUE_USDT,
 } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
 import { useWalletGraph } from '@/lib/wallets';
+import { TraceGraphCanvas } from './trace-graph-canvas';
 import {
-  TraceGraphCanvas,
+  settleSelection,
   type TraceGraphSelection,
-} from './trace-graph-canvas';
+} from './trace-graph-interaction';
 import { TraceGraphControls } from './trace-graph-controls';
 import { TraceGraphDisclosure } from './trace-graph-disclosure';
 import { TraceGraphInspector } from './trace-graph-inspector';
@@ -36,25 +37,10 @@ export function WalletTraceGraph({
   );
   const graph = useWalletGraph(address, depth, minValueUsdt);
 
-  const subjectAddress =
-    graph.data?.nodes.find((node) => node.subject)?.address ?? null;
-
-  useEffect(() => {
-    if (graph.data === undefined || selection === null) return;
-
-    const survives =
-      selection.kind === 'node'
-        ? graph.data.nodes.some((node) => node.address === selection.address)
-        : graph.data.edges.some((edge) => edge.id === selection.id);
-
-    if (survives) return;
-
-    setSelection(
-      subjectAddress === null
-        ? null
-        : { kind: 'node', address: subjectAddress },
-    );
-  }, [graph.data, selection, subjectAddress]);
+  // The settled selection: what actually renders after a re-query. Survival
+  // is a derivation of (graph, selection), so a stale stored entry is never
+  // displayed and no reconciliation effect is needed.
+  const settled = settleSelection(graph.data, selection);
 
   const hasNeighbourhood =
     graph.data !== undefined &&
@@ -99,12 +85,12 @@ export function WalletTraceGraph({
         <>
           <TraceGraphInspector
             graph={graph.data}
-            selection={selection}
+            selection={settled}
             language={language}
           />
           <TraceGraphCanvas
             graph={graph.data}
-            selected={selection}
+            selected={settled}
             onSelect={setSelection}
             language={language}
           />
