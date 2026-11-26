@@ -18,6 +18,12 @@ export const en = {
     all: 'All',
     of: 'of',
     avatar: 'Avatar',
+    notAvailable: '—',
+  },
+  wallet: {
+    decisionOpen: 'Open',
+    decisionFlagged: 'Flagged',
+    decisionCleared: 'Cleared',
   },
   brand: {
     productName: 'fine',

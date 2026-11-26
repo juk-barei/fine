@@ -20,6 +20,12 @@ export const km: TranslationSchema = {
     all: 'ទាំងអស់',
     of: 'នៃ',
     avatar: 'រូបតំណាង',
+    notAvailable: '—',
+  },
+  wallet: {
+    decisionOpen: 'មិនទាន់សម្រេច',
+    decisionFlagged: 'ដាក់កំហាប់',
+    decisionCleared: 'គ្មានកំហាប់',
   },
   brand: {
     productName: 'fine',

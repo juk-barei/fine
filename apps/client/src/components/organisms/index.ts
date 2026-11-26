@@ -2,4 +2,4 @@ export * from './sidebar';
 export * from './auth';
 export * from './wallets/wallet-list';
 export * from './wallets/trace-graph/trace-graph';
-export * from './wallets/band-styles';
+export * from './wallets/vocabulary';
