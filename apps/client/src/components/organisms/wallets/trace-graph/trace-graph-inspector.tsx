@@ -1,11 +1,18 @@
 import type {
-  IntermediaryClass,
-  TraceEdgeDirection,
   WalletConfidence,
   WalletTraceGraph,
 } from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
-import { bandBadge, bandLabel, tierLabel } from '../vocabulary';
+import {
+  bandBadge,
+  bandLabel,
+  directionLabel,
+  formatListedDate,
+  formatUtcTimestamp,
+  formatUsdt,
+  intermediaryLabel,
+  tierLabel,
+} from '../vocabulary';
 import type { TraceGraphSelection } from './trace-graph-interaction';
 
 const CONFIDENCE_KEY: Record<
@@ -15,20 +22,6 @@ const CONFIDENCE_KEY: Record<
   high: 'confidenceHigh',
   medium: 'confidenceMedium',
   low: 'confidenceLow',
-};
-
-const INTERMEDIARY_KEY: Record<
-  IntermediaryClass,
-  'passThrough' | 'peelChain' | 'consolidation'
-> = {
-  pass_through: 'passThrough',
-  peel_chain: 'peelChain',
-  consolidation: 'consolidation',
-};
-
-const DIRECTION_KEY: Record<TraceEdgeDirection, 'inbound' | 'outbound'> = {
-  inbound: 'inbound',
-  outbound: 'outbound',
 };
 
 /**
@@ -68,7 +61,7 @@ export function TraceGraphInspector({
               {t(language, (dictionary) => dictionary.traceGraph.amount)}
             </dt>
             <dd className="mt-0.5 font-medium tabular-nums">
-              {edge.amountUsdt.toLocaleString()} USDT
+              {formatUsdt(edge.amountUsdt)}
             </dd>
           </div>
           <div>
@@ -76,10 +69,7 @@ export function TraceGraphInspector({
               {t(language, (dictionary) => dictionary.traceGraph.direction)}
             </dt>
             <dd className="mt-0.5 font-medium">
-              {t(
-                language,
-                (dictionary) => dictionary.traceGraph[DIRECTION_KEY[edge.direction]],
-              )}
+              {directionLabel(edge.direction, language)}
             </dd>
           </div>
           <div>
@@ -101,7 +91,7 @@ export function TraceGraphInspector({
               {t(language, (dictionary) => dictionary.traceGraph.timestamp)}
             </dt>
             <dd className="mt-0.5 font-medium tabular-nums">
-              {`${edge.timestamp.slice(0, 10)} ${edge.timestamp.slice(11, 19)} UTC`}
+              {formatUtcTimestamp(edge.timestamp)}
             </dd>
           </div>
           <div className="col-span-2">
@@ -205,7 +195,7 @@ export function TraceGraphInspector({
                 )}
               </dt>
               <dd className="mt-0.5 font-medium tabular-nums">
-                {node.volumeUsdt.toLocaleString()} USDT
+                {formatUsdt(node.volumeUsdt)}
               </dd>
             </div>
             <div>
@@ -217,13 +207,7 @@ export function TraceGraphInspector({
               </dt>
               <dd className="mt-0.5 font-medium">
                 {node.intermediary
-                  ? t(
-                      language,
-                      (dictionary) =>
-                        dictionary.traceGraph.inspector[
-                          INTERMEDIARY_KEY[node.intermediary as IntermediaryClass]
-                        ],
-                    )
+                  ? intermediaryLabel(node.intermediary, language)
                   : t(
                       language,
                       (dictionary) => dictionary.traceGraph.inspector.none,
@@ -275,7 +259,7 @@ export function TraceGraphInspector({
                       {label.listedAt
                         ? (
                             <span className="font-medium text-foreground">
-                              {label.listedAt.slice(0, 10)}
+                              {formatListedDate(label.listedAt)}
                             </span>
                           )
                         : t(

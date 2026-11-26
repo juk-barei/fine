@@ -6,7 +6,7 @@ import { authWire, rootWire, walletsWire } from './wire.ts';
  * checked-in artifact lands. The server's `typePaths` glob picks the files
  * up from exactly these paths.
  */
-export const SDL_TARGETS = [
+const SDL_TARGETS = [
   { module: rootWire, target: 'apps/server/src/schema.graphql' },
   { module: authWire, target: 'apps/server/src/modules/auth/auth.graphql' },
   { module: walletsWire, target: 'apps/server/src/modules/wallets/wallets.graphql' },
