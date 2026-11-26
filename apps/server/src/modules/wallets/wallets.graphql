@@ -107,6 +107,17 @@ type TraceEdge {
   direction: TraceEdgeDirection!
 }
 
+type TraceDisclosureReasonParams {
+  nodeCap: Int!
+  nodesKept: Int!
+  nodesScoped: Int!
+}
+
+type TraceDisclosureReason {
+  code: String!
+  params: TraceDisclosureReasonParams!
+}
+
 type TraceDisclosure {
   depthRequested: Int!
   depthReached: Int!
@@ -117,7 +128,7 @@ type TraceDisclosure {
   coverage: CoverageStatus!
   loadedTransfers: Int!
   reportedTransfers: Int!
-  reason: String
+  reason: TraceDisclosureReason
 }
 
 type WalletTraceGraph {

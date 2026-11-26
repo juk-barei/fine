@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { walletTraceGraphSchema } from '@repo/contracts';
-import { mockTraceGraph } from '../../../../src/modules/wallets/wallets.mock.ts';
+import {
+  mockTraceGraph,
+  TRACE_NODE_CAP,
+} from '../../../../src/modules/wallets/wallets.mock.ts';
 import { screenAddress } from '../../../../src/domain/screening/screening.ts';
 import { OFAC_TRON_ADDRESSES } from '../../../../src/domain/screening/ofac-seed.ts';
 
@@ -211,7 +214,13 @@ describe('mockTraceGraph', () => {
       truncated: true,
       coverage: 'partial',
     });
-    expect(five.disclosure.reason).toMatch(/cap/i);
+    const reason = five.disclosure.reason;
+    expect(reason?.code).toBe('node_cap_reached');
+    expect(reason?.params.nodeCap).toBe(TRACE_NODE_CAP);
+    expect(reason?.params.nodesKept).toBe(five.disclosure.nodesReturned);
+    expect(reason?.params.nodesScoped).toBeGreaterThan(
+      reason?.params.nodesKept ?? 0,
+    );
     expect(five.disclosure.loadedTransfers).toBe(five.edges.length);
     expect(five.disclosure.loadedTransfers).toBeLessThan(
       five.disclosure.reportedTransfers,

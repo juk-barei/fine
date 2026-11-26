@@ -137,9 +137,44 @@ export const traceEdgeSchema = z.object({
 export type TraceEdge = z.infer<typeof traceEdgeSchema>;
 
 /**
+ * The reason a trace's coverage is partial, as the wire carries it: a
+ * machine-readable code plus its params record, never a finished sentence.
+ * The vocabulary lives in the contract so every producer (the mock now, a
+ * real chain source later) and the client's dictionary agree on it.
+ */
+export const traceDisclosureReasonCodeSchema = z.enum(['node_cap_reached']);
+export type TraceDisclosureReasonCode = z.infer<
+  typeof traceDisclosureReasonCodeSchema
+>;
+
+/**
+ * `node_cap_reached`'s params record. `nodesScoped` — the nodes in scope
+ * before the cap evicted some — exists nowhere else on the wire, so the
+ * reason carries it as a param instead of the disclosure owning a field it
+ * cannot always fill.
+ */
+export const traceDisclosureReasonParamsSchema = z.object({
+  nodeCap: z.number().int().positive(),
+  nodesKept: z.number().int().min(1),
+  nodesScoped: z.number().int().min(1),
+});
+export type TraceDisclosureReasonParams = z.infer<
+  typeof traceDisclosureReasonParamsSchema
+>;
+
+export const traceDisclosureReasonSchema = z.discriminatedUnion('code', [
+  z.object({
+    code: z.literal('node_cap_reached'),
+    params: traceDisclosureReasonParamsSchema,
+  }),
+]);
+export type TraceDisclosureReason = z.infer<typeof traceDisclosureReasonSchema>;
+
+/**
  * What the server actually did: the depth asked for and reached, how many
  * nodes the cap allowed, and whether the index covered the flow. A truncated
- * trace must never claim complete coverage.
+ * trace must never claim complete coverage, and its reason must agree with
+ * the disclosure it explains.
  */
 export const traceDisclosureSchema = z
   .object({
@@ -152,7 +187,7 @@ export const traceDisclosureSchema = z
     coverage: coverageStatusSchema,
     loadedTransfers: z.number().int().min(0),
     reportedTransfers: z.number().int().min(0),
-    reason: z.string().min(1).nullable(),
+    reason: traceDisclosureReasonSchema.nullable(),
   })
   .superRefine((disclosure, ctx) => {
     if (disclosure.depthReached > disclosure.depthRequested) {
@@ -182,6 +217,38 @@ export const traceDisclosureSchema = z
         path: ['reason'],
         message: 'partial coverage must say why',
       });
+    }
+    if (disclosure.truncated) {
+      if (disclosure.reason?.code !== 'node_cap_reached') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['reason'],
+          message: 'a truncated trace must say the node cap was reached',
+        });
+      } else {
+        const { params } = disclosure.reason;
+        if (params.nodeCap !== disclosure.nodeCap) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['reason', 'params', 'nodeCap'],
+            message: "the reason's node cap must match the disclosure",
+          });
+        }
+        if (params.nodesKept !== disclosure.nodesReturned) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['reason', 'params', 'nodesKept'],
+            message: "the reason's kept nodes must match the nodes returned",
+          });
+        }
+        if (params.nodesScoped < params.nodesKept) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['reason', 'params', 'nodesScoped'],
+            message: 'the scoped nodes cannot be fewer than the kept nodes',
+          });
+        }
+      }
     }
     if (disclosure.loadedTransfers > disclosure.reportedTransfers) {
       ctx.addIssue({

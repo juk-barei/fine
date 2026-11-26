@@ -164,21 +164,24 @@ export const km: TranslationSchema = {
       label: 'Graph disclosure',
       depthRequested: 'Depth requested',
       depthReached: 'Depth reached',
-      depthShortfall: 'Stopped short of the requested depth:',
-      hops: 'hops.',
+      depthShortfall:
+        'ឈប់មិនដល់ជម្រៅដែលបានស្នើ: {reached} នៃ {requested} ហប់។',
       nodesReturned: 'Nodes returned',
-      of: 'of',
-      cap: 'cap',
+      nodesVsCap: '{returned} នៃ {cap} ដែនកំណត់',
       minimumValue: 'Minimum transfer',
       coverage: 'Coverage',
       complete: 'Complete',
       partial: 'Partial',
-      transfers: 'transfers',
+      transfersLoaded: '{loaded} នៃ {reported} ការផ្ទេរ',
       reason: 'Reason:',
       truncated: 'Node cap reached — the trace stopped at the cap.',
       withinCap: 'Within the node cap.',
       simulated: 'Simulated data',
       simulatedHint: 'Synthetic fixture, not chain evidence.',
+      reasons: {
+        node_cap_reached:
+          'បានដល់ដែនកំណត់ចំណុច {nodeCap}៖ បានរក្សាទុកចំណុច {nodesKept} នៃ {nodesScoped} ដោយតម្លៃខ្ពស់បំផុតមុនគេ។',
+      },
     },
     a11y: {
       instructions:

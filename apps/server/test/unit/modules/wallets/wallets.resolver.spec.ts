@@ -78,7 +78,6 @@ describe('WalletsResolver.walletGraph', () => {
       truncated: true,
       coverage: 'partial',
     });
-    expect(graph.disclosure.reason).toMatch(/cap/i);
     expect(graph.disclosure.loadedTransfers).toBeLessThan(
       graph.disclosure.reportedTransfers,
     );

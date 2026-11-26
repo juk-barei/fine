@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { FlaskConical } from 'lucide-react';
-import type { TraceDisclosure } from '@repo/contracts';
+import type {
+  TraceDisclosure,
+  TraceDisclosureReason,
+} from '@repo/contracts';
 import { t, type SupportedLanguage } from '@/i18n';
 
 function DisclosureItem({
@@ -16,6 +19,31 @@ function DisclosureItem({
       <dd className="font-medium text-foreground">{children}</dd>
     </div>
   );
+}
+
+/**
+ * Every reason sentence comes from the dictionary: the server sends a code
+ * plus its params record, the switch maps the code to its template, and the
+ * compiler's exhaustiveness check makes a contract code unshippable without
+ * its translations.
+ */
+function reasonSentence(
+  reason: TraceDisclosureReason,
+  language: SupportedLanguage,
+): string {
+  switch (reason.code) {
+    case 'node_cap_reached':
+      return t(
+        language,
+        (dictionary) =>
+          dictionary.traceGraph.disclosure.reasons.node_cap_reached,
+        reason.params,
+      );
+    default: {
+      const exhaustive: never = reason.code;
+      return exhaustive;
+    }
+  }
 }
 
 /**
@@ -94,10 +122,14 @@ export function TraceGraphDisclosure({
             (dictionary) => dictionary.traceGraph.disclosure.nodesReturned,
           )}
         >
-          {disclosure.nodesReturned}{' '}
-          {t(language, (dictionary) => dictionary.traceGraph.disclosure.of)}{' '}
-          {disclosure.nodeCap}{' '}
-          {t(language, (dictionary) => dictionary.traceGraph.disclosure.cap)}
+          {t(
+            language,
+            (dictionary) => dictionary.traceGraph.disclosure.nodesVsCap,
+            {
+              returned: disclosure.nodesReturned,
+              cap: disclosure.nodeCap,
+            },
+          )}
         </DisclosureItem>
         <DisclosureItem
           label={t(
@@ -126,19 +158,20 @@ export function TraceGraphDisclosure({
       </dl>
 
       <p className="text-muted-foreground">
-        {disclosure.loadedTransfers.toLocaleString()}{' '}
-        {t(language, (dictionary) => dictionary.traceGraph.disclosure.of)}{' '}
-        {disclosure.reportedTransfers.toLocaleString()}{' '}
         {t(
           language,
-          (dictionary) => dictionary.traceGraph.disclosure.transfers,
+          (dictionary) => dictionary.traceGraph.disclosure.transfersLoaded,
+          {
+            loaded: disclosure.loadedTransfers.toLocaleString(),
+            reported: disclosure.reportedTransfers.toLocaleString(),
+          },
         )}
       </p>
 
       {partial && disclosure.reason ? (
         <p className="text-muted-foreground">
           {t(language, (dictionary) => dictionary.traceGraph.disclosure.reason)}{' '}
-          {disclosure.reason}
+          {reasonSentence(disclosure.reason, language)}
         </p>
       ) : null}
 
@@ -159,11 +192,11 @@ export function TraceGraphDisclosure({
           {t(
             language,
             (dictionary) => dictionary.traceGraph.disclosure.depthShortfall,
-          )}{' '}
-          {disclosure.depthReached}{' '}
-          {t(language, (dictionary) => dictionary.traceGraph.disclosure.of)}{' '}
-          {disclosure.depthRequested}{' '}
-          {t(language, (dictionary) => dictionary.traceGraph.disclosure.hops)}
+            {
+              reached: disclosure.depthReached,
+              requested: disclosure.depthRequested,
+            },
+          )}
         </p>
       ) : null}
     </div>
