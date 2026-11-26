@@ -147,7 +147,10 @@ const truncatedDisclosure = {
   coverage: 'partial' as const,
   loadedTransfers: 1_200,
   reportedTransfers: 2_400,
-  reason: 'Index covers half of the reported transfers.',
+  reason: {
+    code: 'node_cap_reached' as const,
+    params: { nodeCap: 4, nodesKept: 4, nodesScoped: 8 },
+  },
 };
 
 describe('TraceGraphCanvas', () => {
@@ -1064,7 +1067,7 @@ describe('TraceGraphDisclosure', () => {
     expect(within(disclosure).getByText('1,200 of 2,400 transfers')).toBeTruthy();
     expect(
       within(disclosure).getByText(
-        'Reason: Index covers half of the reported transfers.',
+        'Reason: Node cap of 4 reached: 4 of 8 nodes kept, highest value first.',
       ),
     ).toBeTruthy();
     expect(
@@ -1079,6 +1082,54 @@ describe('TraceGraphDisclosure', () => {
     ).toBeTruthy();
     expect(within(disclosure).queryByText('Within the node cap.')).toBeNull();
     expect(within(disclosure).queryByRole('note')).toBeNull();
+  });
+
+  it('renders the capped disclosure from the Khmer templates', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={truncatedDisclosure}
+        simulated={false}
+        language="km"
+      />,
+    );
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Nodes returned')).toContain(
+      '4 នៃ 4 ដែនកំណត់',
+    );
+    expect(
+      within(disclosure).getByText('1,200 នៃ 2,400 ការផ្ទេរ'),
+    ).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'Reason: បានដល់ដែនកំណត់ចំណុច 4៖ បានរក្សាទុកចំណុច 4 នៃ 8 ដោយតម្លៃខ្ពស់បំផុតមុនគេ។',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(disclosure).getByText(
+        'ឈប់មិនដល់ជម្រៅដែលបានស្នើ: 3 នៃ 5 ហប់។',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('renders the uncapped disclosure from the Khmer templates', () => {
+    render(
+      <TraceGraphDisclosure
+        disclosure={graph.disclosure}
+        simulated={false}
+        language="km"
+      />,
+    );
+
+    const disclosure = screen.getByRole('group', { name: 'Graph disclosure' });
+
+    expect(disclosureRow(disclosure, 'Nodes returned')).toContain(
+      '4 នៃ 500 ដែនកំណត់',
+    );
+    expect(within(disclosure).getByText('3 នៃ 3 ការផ្ទេរ')).toBeTruthy();
+    expect(within(disclosure).queryByText(/^Reason:/)).toBeNull();
+    expect(within(disclosure).queryByText(/^Stopped short/)).toBeNull();
   });
 
   it('does not claim a shortfall when complete coverage simply stopped early', () => {

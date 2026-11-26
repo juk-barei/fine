@@ -177,6 +177,13 @@ describe('the served wallets SDL', () => {
   it('keeps serving identifier fields through the ID scalar', () => {
     expect(sdl).toContain('id: ID!');
   });
+
+  it('serves the disclosure reason as its structured type', () => {
+    expect(sdl).toContain('reason: TraceDisclosureReason');
+    expect(sdl).toContain(
+      'type TraceDisclosureReason {\n  code: String!\n  params: TraceDisclosureReasonParams!\n}',
+    );
+  });
 });
 
 describe('the served root SDL', () => {

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   authSessionInfoSchema,
   revokeSessionInputSchema,
@@ -9,6 +10,7 @@ import {
   decisionStatusSchema,
   intermediaryClassSchema,
   labelTierSchema,
+  traceDisclosureReasonParamsSchema,
   traceDisclosureSchema,
   traceEdgeDirectionSchema,
   traceEdgeSchema,
@@ -76,6 +78,37 @@ export const authWire = defineWireModule({
   },
 });
 
+/**
+ * The disclosure reason's SDL view. The contract carries the reason as a
+ * discriminated union; SDL serves one flat type instead — `code` is a plain
+ * `String` (a real enum when a second code lands) and the params record is
+ * its own named type. Like the `ID` scalar, this is a hand-declared
+ * mapping zod cannot express, stated once here in the registry.
+ */
+const traceDisclosureReasonSdlSchema = z.object({
+  code: z.string(),
+  params: traceDisclosureReasonParamsSchema,
+});
+
+/**
+ * The disclosure's SDL view: the contract's fields with the reason's union
+ * swapped for its SDL view, so the emitter never meets a union.
+ */
+const traceDisclosureSdlSchema = z.object({
+  ...traceDisclosureSchema.shape,
+  reason: traceDisclosureReasonSdlSchema.nullable(),
+});
+
+/**
+ * The trace graph's SDL view: the contract's fields with the disclosure
+ * swapped for its SDL view, so the graph's reference resolves to the type
+ * the registry actually serves.
+ */
+const walletTraceGraphSdlSchema = z.object({
+  ...walletTraceGraphSchema.shape,
+  disclosure: traceDisclosureSdlSchema,
+});
+
 /** The laundering screener's read model, trace graph and screening mutation. */
 export const walletsWire = defineWireModule({
   name: 'wallets',
@@ -96,8 +129,10 @@ export const walletsWire = defineWireModule({
     TraceRule: traceRuleSchema,
     TraceNode: traceNodeSchema,
     TraceEdge: { schema: traceEdgeSchema, ids: ['id'] },
-    TraceDisclosure: traceDisclosureSchema,
-    WalletTraceGraph: walletTraceGraphSchema,
+    TraceDisclosureReasonParams: traceDisclosureReasonParamsSchema,
+    TraceDisclosureReason: traceDisclosureReasonSdlSchema,
+    TraceDisclosure: traceDisclosureSdlSchema,
+    WalletTraceGraph: walletTraceGraphSdlSchema,
     WalletDetail: walletDetailSchema,
     WalletScreening: walletScreeningSchema,
   },

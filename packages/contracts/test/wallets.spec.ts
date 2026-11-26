@@ -253,7 +253,13 @@ describe('wallet trace graph contract', () => {
     ).toBe(false);
     expect(
       traceDisclosureSchema.safeParse(
-        disclosure({ coverage: 'partial', reason: 'index stopped short' }),
+        disclosure({
+          coverage: 'partial',
+          reason: {
+            code: 'node_cap_reached',
+            params: { nodeCap: 500, nodesKept: 2, nodesScoped: 7 },
+          },
+        }),
       ).success,
     ).toBe(true);
   });
@@ -264,9 +270,69 @@ describe('wallet trace graph contract', () => {
     ).toBe(false);
     expect(
       traceDisclosureSchema.safeParse(
-        disclosure({ truncated: true, coverage: 'partial', reason: 'node cap' }),
+        disclosure({
+          truncated: true,
+          coverage: 'partial',
+          reason: {
+            code: 'node_cap_reached',
+            params: { nodeCap: 500, nodesKept: 2, nodesScoped: 7 },
+          },
+        }),
       ).success,
     ).toBe(true);
+  });
+
+  it('rejects a reason outside the structured vocabulary', () => {
+    expect(
+      traceDisclosureSchema.safeParse(
+        disclosure({
+          truncated: true,
+          coverage: 'partial',
+          reason: 'node cap reached, trust me',
+        }),
+      ).success,
+    ).toBe(false);
+    expect(
+      traceDisclosureSchema.safeParse(
+        disclosure({
+          truncated: true,
+          coverage: 'partial',
+          reason: {
+            code: 'index_lag',
+            params: { nodeCap: 500, nodesKept: 2, nodesScoped: 7 },
+          },
+        }),
+      ).success,
+    ).toBe(false);
+  });
+
+  it('rejects a reason that contradicts the disclosure it explains', () => {
+    const reason = (params: Record<string, number>) => ({
+      code: 'node_cap_reached',
+      params,
+    });
+    const truncated = (params: Record<string, number>) =>
+      disclosure({
+        truncated: true,
+        coverage: 'partial',
+        reason: reason(params),
+      });
+
+    expect(
+      traceDisclosureSchema.safeParse(
+        truncated({ nodeCap: 300, nodesKept: 2, nodesScoped: 7 }),
+      ).success,
+    ).toBe(false);
+    expect(
+      traceDisclosureSchema.safeParse(
+        truncated({ nodeCap: 500, nodesKept: 3, nodesScoped: 7 }),
+      ).success,
+    ).toBe(false);
+    expect(
+      traceDisclosureSchema.safeParse(
+        truncated({ nodeCap: 500, nodesKept: 2, nodesScoped: 1 }),
+      ).success,
+    ).toBe(false);
   });
 
   it('rejects a depth reached beyond the depth requested and an overflowing cap', () => {

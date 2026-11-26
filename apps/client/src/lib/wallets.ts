@@ -152,7 +152,14 @@ const WALLET_GRAPH_QUERY = `
         coverage
         loadedTransfers
         reportedTransfers
-        reason
+        reason {
+          code
+          params {
+            nodeCap
+            nodesKept
+            nodesScoped
+          }
+        }
       }
     }
   }

@@ -162,21 +162,24 @@ export const en = {
       label: 'Graph disclosure',
       depthRequested: 'Depth requested',
       depthReached: 'Depth reached',
-      depthShortfall: 'Stopped short of the requested depth:',
-      hops: 'hops.',
+      depthShortfall:
+        'Stopped short of the requested depth: {reached} of {requested} hops.',
       nodesReturned: 'Nodes returned',
-      of: 'of',
-      cap: 'cap',
+      nodesVsCap: '{returned} of {cap} cap',
       minimumValue: 'Minimum transfer',
       coverage: 'Coverage',
       complete: 'Complete',
       partial: 'Partial',
-      transfers: 'transfers',
+      transfersLoaded: '{loaded} of {reported} transfers',
       reason: 'Reason:',
       truncated: 'Node cap reached — the trace stopped at the cap.',
       withinCap: 'Within the node cap.',
       simulated: 'Simulated data',
       simulatedHint: 'Synthetic fixture, not chain evidence.',
+      reasons: {
+        node_cap_reached:
+          'Node cap of {nodeCap} reached: {nodesKept} of {nodesScoped} nodes kept, highest value first.',
+      },
     },
     a11y: {
       instructions:

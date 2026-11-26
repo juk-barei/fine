@@ -332,7 +332,14 @@ export function mockTraceGraph({
       loadedTransfers: returnedEdges.length,
       reportedTransfers: reportedEdges.length,
       reason: truncated
-        ? `Node cap of ${TRACE_NODE_CAP} reached: ${returnedNodes.length} of ${scopedNodes.length} nodes kept, highest value first.`
+        ? {
+            code: 'node_cap_reached',
+            params: {
+              nodeCap: TRACE_NODE_CAP,
+              nodesKept: returnedNodes.length,
+              nodesScoped: scopedNodes.length,
+            },
+          }
         : null,
     },
   };
